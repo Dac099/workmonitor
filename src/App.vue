@@ -7,7 +7,9 @@ import NavBar from './core/components/NavBar.vue'
   <header>
     <NavBar />
   </header>
-  <main></main>
+  <main>
+    <RouterView />
+  </main>
 </template>
 
 <style>
@@ -37,5 +39,7 @@ header {
 main {
   height: calc(100vh - 28px);
   width: 100vw;
+  padding: 1rem;
+  overflow: auto;
 }
 </style>
