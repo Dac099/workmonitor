@@ -1,11 +1,41 @@
-<script setup lang="ts"></script>
+<script setup lang="ts">
+import NavBar from './core/components/NavBar.vue'
+</script>
 
+<!-- This is the root componente of the app. Here we define the main layout of the application -->
 <template>
-  <h1>You did it!</h1>
-  <p>
-    Visit <a href="https://vuejs.org/" target="_blank" rel="noopener">vuejs.org</a> to read the
-    documentation
-  </p>
+  <header>
+    <NavBar />
+  </header>
+  <main></main>
 </template>
 
-<style scoped></style>
+<style>
+:root {
+  --main-color: #fffffe;
+  --highlight-color: #3da9fc;
+  --secondary-color: #ef4565;
+  --dark-color: #094067;
+  --light-dark-color: #5f6c7b;
+}
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background-color: var(--main-color);
+  font-family: sans-serif;
+}
+
+header {
+  height: 28px;
+  width: 100vw;
+}
+
+main {
+  height: calc(100vh - 28px);
+  width: 100vw;
+}
+</style>
