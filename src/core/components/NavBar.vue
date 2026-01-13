@@ -25,16 +25,10 @@ const closeSidebar = () => {
 
     <!-- Navegación desktop -->
     <section class="navList navList--desktop">
-      <RouterLink class="navListItem" to="/projects">
-        <v-icon name="fa-project-diagram" /> Proyectos
-      </RouterLink>
-      <RouterLink class="navListItem" to="/reports">
-        <v-icon name="hi-solid-document-report" /> Reportes
-      </RouterLink>
-      <RouterLink class="navListItem" to="/tracking">
-        <v-icon name="co-magnifying-glass" /> Seguimiento
-      </RouterLink>
-      <RouterLink class="navListItem" to="/account"> <v-icon name="fa-user" /> Cuenta </RouterLink>
+      <RouterLink class="navListItem" to="/projects"> Proyectos </RouterLink>
+      <RouterLink class="navListItem" to="/reports"> Reportes </RouterLink>
+      <RouterLink class="navListItem" to="/tracking"> Seguimiento </RouterLink>
+      <RouterLink class="navListItem" to="/account"> Cuenta </RouterLink>
     </section>
 
     <!-- Overlay -->
@@ -44,17 +38,15 @@ const closeSidebar = () => {
     <aside class="sidebar" :class="{ 'sidebar--open': isSidebarOpen }">
       <nav class="sidebar__nav">
         <RouterLink class="sidebar__item" to="/projects" @click="closeSidebar">
-          <v-icon name="fa-project-diagram" /> Proyectos
+          Proyectos
         </RouterLink>
         <RouterLink class="sidebar__item" to="/reports" @click="closeSidebar">
-          <v-icon name="hi-solid-document-report" /> Reportes
+          Reportes
         </RouterLink>
         <RouterLink class="sidebar__item" to="/tracking" @click="closeSidebar">
-          <v-icon name="co-magnifying-glass" /> Seguimiento
+          Seguimiento
         </RouterLink>
-        <RouterLink class="sidebar__item" to="/account" @click="closeSidebar">
-          <v-icon name="fa-user" /> Cuenta
-        </RouterLink>
+        <RouterLink class="sidebar__item" to="/account" @click="closeSidebar"> Cuenta </RouterLink>
       </nav>
     </aside>
   </article>

@@ -13,22 +13,46 @@ import NavBar from './core/components/NavBar.vue'
 </template>
 
 <style>
+@import 'https://www.nerdfonts.com/assets/css/webfont.css';
+
+@font-face {
+  font-family: 'Fira Code';
+  src: url('/fonts/FiraCodeNerdFont-Light.ttf') format('truetype');
+  font-weight: 300;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Fira Code';
+  src: url('/fonts/FiraCodeNerdFont-Medium.ttf') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Fira Code';
+  src: url('/fonts/FiraCodeNerdFont-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+}
+
 :root {
   --main-color: #fffffe;
   --highlight-color: #3da9fc;
   --secondary-color: #ef4565;
   --dark-color: #094067;
   --light-dark-color: #5f6c7b;
+  --shadow-color: rgba(0, 0, 0, 0.3);
 }
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  font-family: 'Fira Code', monospace, sans-serif;
 }
 
 body {
   background-color: var(--main-color);
-  font-family: sans-serif;
 }
 
 header {

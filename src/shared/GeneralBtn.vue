@@ -16,7 +16,7 @@ const props = defineProps<{
 <style scoped>
 button {
   text-align: center;
-  width: 100%;
+  width: max-content;
   padding: 0.3rem 0.6rem;
   border-radius: 0.3rem;
   cursor: pointer;
@@ -30,6 +30,16 @@ button:active {
 
 .primary {
   background-color: var(--highlight-color);
+  color: var(--main-color);
+}
+
+.contrast {
+  background-color: var(--light-dark-color);
+  color: var(--main-color);
+}
+
+.danger {
+  background-color: var(--secondary-color);
   color: var(--main-color);
 }
 </style>
