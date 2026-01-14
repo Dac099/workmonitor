@@ -5,3 +5,12 @@ export type Board = {
   createdAt: Date
   ownerId: number
 }
+
+export type SubmitBoardDto = {
+  name: string
+  category: string
+  mainView: string
+  isPersonal: boolean
+  ownerId: number
+  createdAt: Date
+}

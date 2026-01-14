@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, type Ref, ref } from 'vue'
-import { type Board } from '../types/board'
+import { type Board, type SubmitBoardDto } from '../types/board'
 import { useRouter } from 'vue-router'
 import getDateString from '@/utils/transformers'
 import Sidebar from '@/shared/SideBar.vue'
@@ -71,7 +71,7 @@ const openSidebar = () => {
   isSidebarOpen.value = true
 }
 
-const addNewBoard = (newBoard: Omit<Board, 'id'>) => {
+const addNewBoard = (newBoard: SubmitBoardDto) => {
   boards.value.push({
     id: boards.value.length + 1,
     ...newBoard,
@@ -80,6 +80,11 @@ const addNewBoard = (newBoard: Omit<Board, 'id'>) => {
 
 const goToBoard = (boardId: number) => {
   router.push(`/projects/boards/${boardId}`)
+}
+
+const handleSubmitNewBoard = (newBoard: SubmitBoardDto) => {
+  addNewBoard(newBoard)
+  closeSidebar()
 }
 </script>
 
@@ -117,7 +122,7 @@ const goToBoard = (boardId: number) => {
         >
           <div class="card-header">
             <i class="nf nf-fa-table_list icon"></i>
-            <h4>{{ board.name }}</h4>
+            <h4 :title="board.name">{{ board.name }}</h4>
           </div>
           <p>{{ board.category }}</p>
           <p class="card--date">{{ getDateString(board.createdAt) }}</p>
@@ -130,7 +135,7 @@ const goToBoard = (boardId: number) => {
       <h2>Nuevo Tablero</h2>
     </template>
 
-    <BoardForm />
+    <BoardForm @submit="handleSubmitNewBoard" />
   </Sidebar>
 </template>
 
@@ -221,6 +226,12 @@ button:hover {
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+.card-header h4 {
+  text-wrap: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .icon {

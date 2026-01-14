@@ -1,26 +1,65 @@
 <script lang="ts" setup>
 import { ref, type Ref } from 'vue'
+import type { SubmitBoardDto } from '../types/board'
 
 const boardName: Ref<string> = ref('')
 const category: Ref<string> = ref('')
 const mainView: Ref<string> = ref('groups')
 const isPersonal: Ref<boolean> = ref(false)
+const options: Ref<string[]> = ref(['Proyectos', 'Diseño', 'Cobranza', 'Servicios'])
+const showInput: Ref<boolean> = ref(false)
+const newCategoryName: Ref<string> = ref('')
+
+const emit = defineEmits<{
+  (e: 'submit', board: SubmitBoardDto): void
+}>()
+
+const handleSubmit = () => {
+  emit('submit', {
+    category: category.value,
+    mainView: mainView.value,
+    isPersonal: isPersonal.value,
+    name: boardName.value,
+    ownerId: 2,
+    createdAt: new Date(),
+  })
+}
+
+const addNewOption = (newOption: string) => {
+  if (!newOption) return
+  options.value.push(newOption)
+  newCategoryName.value = ''
+  toggleInput()
+}
+
+const toggleInput = () => {
+  showInput.value = !showInput.value
+}
 </script>
 
 <template>
-  <form action="#" @submit.prevent="">
+  <form action="#">
     <div class="input-group">
       <label for="boardName">Nombre del tablero</label>
       <input type="text" name="boardName" id="boardName" v-model="boardName" />
     </div>
 
     <div class="input-group">
-      <label for="category">Categoría</label>
+      <div class="input-group--controls">
+        <label for="category">Categoría</label>
+        <i class="nf nf-fa-square_plus" @click="toggleInput()"></i>
+      </div>
+      <input
+        type="text"
+        v-model="newCategoryName"
+        @keyup.enter.prevent="addNewOption(newCategoryName)"
+        v-if="showInput"
+        autocapitalize="true"
+        autofocus="true"
+      />
       <select name="category" id="category" v-model="category">
         <option value="">Selecciona una categoría</option>
-        <option value="development">Proyectos</option>
-        <option value="design">Cobranza</option>
-        <option value="marketing">Servicios</option>
+        <option v-for="opt in options" :value="opt" :key="opt">{{ opt }}</option>
       </select>
     </div>
 
@@ -41,7 +80,7 @@ const isPersonal: Ref<boolean> = ref(false)
     </div>
 
     <div class="form-controls">
-      <button type="submit">Guardar</button>
+      <button type="button" @click="handleSubmit()">Guardar</button>
     </div>
   </form>
 </template>
@@ -112,6 +151,14 @@ input[type='checkbox'] {
   gap: 1rem;
   margin-top: 1rem;
   justify-content: flex-end;
+}
+
+.input-group--controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  color: var(--dark-color);
 }
 
 button {
