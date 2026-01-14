@@ -14,41 +14,21 @@ import NavBar from './core/components/NavBar.vue'
 
 <style>
 @import 'https://www.nerdfonts.com/assets/css/webfont.css';
-
-@font-face {
-  font-family: 'Fira Code';
-  src: url('/fonts/FiraCodeNerdFont-Light.ttf') format('truetype');
-  font-weight: 300;
-  font-style: normal;
-}
-
-@font-face {
-  font-family: 'Fira Code';
-  src: url('/fonts/FiraCodeNerdFont-Medium.ttf') format('truetype');
-  font-weight: 500;
-  font-style: normal;
-}
-
-@font-face {
-  font-family: 'Fira Code';
-  src: url('/fonts/FiraCodeNerdFont-Bold.ttf') format('truetype');
-  font-weight: 700;
-  font-style: normal;
-}
+@import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
 
 :root {
   --main-color: #fffffe;
-  --highlight-color: #3da9fc;
-  --secondary-color: #ef4565;
-  --dark-color: #094067;
-  --light-dark-color: #5f6c7b;
-  --shadow-color: rgba(0, 0, 0, 0.3);
+  --dark-color: #262d33;
+  --sec-color: #f9f9f9;
+  --ter-color: #ddd;
+  --contrast-color: #2b82f0;
+  --shadow-color: rgba(0, 0, 0, 0.1);
 }
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  font-family: 'Fira Code', monospace, sans-serif;
+  font-family: 'Poppins', sans-serif;
 }
 
 body {
@@ -56,14 +36,14 @@ body {
 }
 
 header {
-  height: 28px;
+  height: 38px;
   width: 100vw;
 }
 
 main {
-  height: calc(100vh - 28px);
+  height: calc(100vh - 38px);
   width: 100vw;
-  padding: 1rem;
+  padding: 10px;
   overflow: auto;
 }
 </style>

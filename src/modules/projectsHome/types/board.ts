@@ -3,4 +3,5 @@ export type Board = {
   name: string
   category: string
   createdAt: Date
+  ownerId: number
 }

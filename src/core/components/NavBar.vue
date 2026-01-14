@@ -50,6 +50,7 @@ const closeSidebar = () => {
       </nav>
     </aside>
   </article>
+  <hr>
 </template>
 
 <style scoped>
@@ -74,25 +75,25 @@ a {
 
 .navList {
   display: flex;
-  gap: 1rem;
+  gap: 5px;
 }
 
 .navListItem {
-  padding: 0.5rem 1rem;
-  border-radius: 0.5rem;
+  padding: 0.3rem 1rem;
+  border-radius: 3px;
   transition: all 0.5s ease;
+  font-weight: 500;
+  font-size: 0.9rem;
 }
 
 .navListItem:hover {
-  background-color: var(--light-dark-color);
+  background-color: var(--dark-color);
   color: white;
-  font-weight: 600;
 }
 
 .navListItem.router-link-active {
   background-color: var(--dark-color);
   color: white;
-  font-weight: 600;
 }
 
 /* Botón hamburguesa */
@@ -152,7 +153,7 @@ a {
 }
 
 .sidebar__close:hover {
-  background-color: var(--light-dark-color);
+  background-color: var(--dark-color);
   color: white;
 }
 
@@ -174,7 +175,7 @@ a {
 }
 
 .sidebar__item:hover {
-  background-color: var(--light-dark-color);
+  background-color: var(--dark-color);
   color: white;
   transform: translateX(5px);
 }
