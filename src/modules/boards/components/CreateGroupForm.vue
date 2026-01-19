@@ -1,27 +1,40 @@
 <script lang="ts" setup>
 import { ref } from 'vue'
+import { useColorsStore } from '@/stores/colors'
+import type { NewGroup } from '../types/groups'
 
 const emit = defineEmits<{
-  submit: [groupName: string]
+  submit: [groupForm: NewGroup]
   cancel: []
 }>()
 
+const colorsStore = useColorsStore()
+
 const groupName = ref('')
+const selectedColor = ref(colorsStore.availableColors[0] || '#266DD3')
 const isSubmitting = ref(false)
 
 const handleSubmit = () => {
   if (!groupName.value.trim()) return
 
   isSubmitting.value = true
-  emit('submit', groupName.value.trim())
+
+  const groupForm: NewGroup = {
+    name: groupName.value.trim(),
+    color: selectedColor.value,
+  }
+
+  emit('submit', groupForm)
 
   // Reset form
   groupName.value = ''
+  selectedColor.value = colorsStore.availableColors[0] || '#266DD3'
   isSubmitting.value = false
 }
 
 const handleCancel = () => {
   groupName.value = ''
+  selectedColor.value = colorsStore.availableColors[0] || '#266DD3'
   emit('cancel')
 }
 </script>
@@ -39,6 +52,24 @@ const handleCancel = () => {
         required
         autofocus
       />
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Color del Grupo</label>
+      <div class="color-picker">
+        <button
+          v-for="color in colorsStore.availableColors"
+          :key="color"
+          type="button"
+          class="color-option"
+          :class="{ 'color-option--selected': selectedColor === color }"
+          :style="{ backgroundColor: color }"
+          @click="selectedColor = color"
+          :title="color"
+        >
+          <span v-if="selectedColor === color" class="color-check">✓</span>
+        </button>
+      </div>
     </div>
 
     <div class="form-actions">
@@ -130,5 +161,42 @@ const handleCancel = () => {
 
 .btn-submit:hover:not(:disabled) {
   background-color: #1557b0;
+}
+
+.color-picker {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+  gap: 8px;
+}
+
+.color-option {
+  width: 100%;
+  aspect-ratio: 1;
+  border: 2px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.color-option:hover {
+  transform: scale(1.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.color-option--selected {
+  border-color: #1a73e8;
+  box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.2);
+}
+
+.color-check {
+  color: white;
+  font-size: 1.2rem;
+  font-weight: bold;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 </style>

@@ -4,18 +4,17 @@ import type { Group } from '../types/groups'
 
 const props = defineProps<{
   groups: Group[]
+  selectedGroupId: number
 }>()
 
 const emit = defineEmits<{
   groupSelected: [groupId: number]
 }>()
 
-const selectedGroupId = ref(props.groups[0]?.id || -1)
 const showOverlay = ref(false)
 const menuWrapperRef = ref<HTMLElement | null>(null)
 
 const selectGroup = (groupId: number) => {
-  selectedGroupId.value = groupId
   showOverlay.value = false
   emit('groupSelected', groupId)
 }
@@ -32,7 +31,6 @@ const handleClickOutside = (event: MouseEvent) => {
 
 onMounted(() => {
   document.addEventListener('click', handleClickOutside)
-  emit('groupSelected', selectedGroupId.value)
 })
 
 onUnmounted(() => {
@@ -53,7 +51,7 @@ onUnmounted(() => {
               v-for="group in props.groups"
               :key="group.id"
               class="context-menu-item"
-              :class="{ 'context-menu-item--selected': selectedGroupId === group.id }"
+              :class="{ 'context-menu-item--selected': props.selectedGroupId === group.id }"
               @click="selectGroup(group.id)"
             >
               {{ group.name }}
@@ -68,7 +66,7 @@ onUnmounted(() => {
         v-for="group in props.groups"
         :key="group.id"
         class="group-item"
-        :class="{ 'group-item--selected': selectedGroupId === group.id }"
+        :class="{ 'group-item--selected': props.selectedGroupId === group.id }"
         @click="selectGroup(group.id)"
       >
         {{ group.name }}

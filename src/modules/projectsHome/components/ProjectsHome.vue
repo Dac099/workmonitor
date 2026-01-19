@@ -3,7 +3,7 @@ import { computed, type Ref, ref } from 'vue'
 import { type Board, type SubmitBoardDto } from '../types/board'
 import { useRouter } from 'vue-router'
 import getDateString from '@/utils/transformers'
-import Sidebar from '@/shared/SideBar.vue'
+import Sidebar from '@/shared/components/SideBar.vue'
 import BoardForm from './BoardForm.vue'
 
 const router = useRouter()

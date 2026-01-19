@@ -1,29 +1,23 @@
 <script lang="ts" setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import GroupsList from './GroupsList.vue'
-import SideBar from '@/shared/SideBar.vue'
+import GroupView from './GroupView.vue'
+import SideBar from '@/shared/components/SideBar.vue'
 import CreateGroupForm from './CreateGroupForm.vue'
 import DuplicateGroupForm from './DuplicateGroupForm.vue'
-import type { Group } from '../types/groups'
+import type { Group, NewGroup } from '../types/groups'
 
 const route = useRoute()
-const selectedGroupId = ref<number>(-1)
+const selectedGroupId = ref<number>(0)
 const isCreateGroupSidebarOpen = ref(false)
 const isDuplicateGroupSidebarOpen = ref(false)
 
-const groupsList = ref<Group[]>([
-  { name: 'Grupo 1', id: 1 },
-  { name: 'Grupo 2', id: 2 },
-  { name: 'Grupo 3', id: 3 },
-  { name: 'Grupo 4', id: 4 },
-  { name: 'Grupo 5', id: 5 },
-  { name: 'Grupo 6', id: 6 },
-  { name: 'Grupo 7', id: 7 },
-  { name: 'Grupo 8', id: 8 },
-  { name: 'Grupo 9', id: 9 },
-  { name: 'Grupo 10', id: 10 },
-])
+const groupsList = ref<Group[]>([])
+
+const selectedGroup = computed(() => {
+  return groupsList.value.find((g) => g.id === selectedGroupId.value) || null
+})
 
 const handleGroupSelected = (groupId: number) => {
   selectedGroupId.value = groupId
@@ -45,11 +39,12 @@ const closeDuplicateGroupSidebar = () => {
   isDuplicateGroupSidebarOpen.value = false
 }
 
-const handleCreateGroup = (groupName: string) => {
+const handleCreateGroup = (groupForm: NewGroup) => {
   const newId = Math.max(...groupsList.value.map((g) => g.id), 0) + 1
   const newGroup: Group = {
     id: newId,
-    name: groupName,
+    name: groupForm.name,
+    color: groupForm.color,
   }
 
   groupsList.value.push(newGroup)
@@ -72,6 +67,7 @@ const handleDuplicateGroup = (keepValues: boolean) => {
   const newGroup: Group = {
     id: newId,
     name: `${selectedGroup.name} (Copia)`,
+    color: selectedGroup.color,
   }
 
   groupsList.value.push(newGroup)
@@ -89,7 +85,11 @@ const handleDuplicateGroup = (keepValues: boolean) => {
     <section class="main-container--header">
       <section class="header--actions-container">
         <h3>Tablero {{ route.params.boardId }}</h3>
-        <GroupsList :groups="groupsList" @group-selected="handleGroupSelected" />
+        <GroupsList
+          :groups="groupsList"
+          :selected-group-id="selectedGroupId"
+          @group-selected="handleGroupSelected"
+        />
       </section>
       <section class="header--actions">
         <button type="button" @click="openCreateGroupSidebar">Nuevo Grupo</button>
@@ -98,8 +98,7 @@ const handleDuplicateGroup = (keepValues: boolean) => {
       </section>
     </section>
     <section class="main-container--body">
-      <p v-if="selectedGroupId !== -1">Grupo seleccionado: {{ selectedGroupId }}</p>
-      <p v-else>No hay grupo seleccionado</p>
+      <GroupView :selected-group="selectedGroup" />
     </section>
 
     <!-- Sidebar para crear nuevo grupo -->
@@ -167,9 +166,8 @@ const handleDuplicateGroup = (keepValues: boolean) => {
 }
 
 .main-container--body {
-  border: 1px solid green;
   flex: 1;
-  overflow: auto;
+  overflow: hidden;
 }
 
 h2 {
