@@ -18,14 +18,18 @@ const route = useRoute()
 const columnsStore = useColumnsStore()
 
 const selectedGroupId = ref<number>(0)
-const isCreateGroupSidebarOpen = ref(false)
-const isDuplicateGroupSidebarOpen = ref(false)
-const isExportSidebarOpen = ref(false)
-const isAddColumnSidebarOpen = ref(false)
-const isMoveGroupSidebarOpen = ref(false)
-const isEditGroupSidebarOpen = ref(false)
-
 const groupsList = ref<Group[]>([])
+
+// Unified sidebar state
+type SidebarType =
+  | 'create-group'
+  | 'duplicate-board'
+  | 'export-board'
+  | 'add-column'
+  | 'move-group'
+  | 'edit-group'
+  | null
+const activeSidebar = ref<SidebarType>(null)
 
 const selectedGroup = computed(() => {
   return groupsList.value.find((g) => g.id === selectedGroupId.value) || null
@@ -40,54 +44,90 @@ const handleGroupSelected = (groupId: number) => {
   selectedGroupId.value = groupId
 }
 
-const openCreateGroupSidebar = () => {
-  isCreateGroupSidebarOpen.value = true
+// Unified sidebar control
+const openSidebar = (type: SidebarType) => {
+  activeSidebar.value = type
 }
 
-const closeCreateGroupSidebar = () => {
-  isCreateGroupSidebarOpen.value = false
+const closeSidebar = () => {
+  activeSidebar.value = null
 }
 
-const openDuplicateGroupSidebar = () => {
-  isDuplicateGroupSidebarOpen.value = true
-}
+// Sidebar configuration
+const sidebarConfig = computed(() => {
+  if (!activeSidebar.value) return null
 
-const closeDuplicateGroupSidebar = () => {
-  isDuplicateGroupSidebarOpen.value = false
-}
+  const configs = {
+    'create-group': {
+      component: CreateGroupForm,
+      title: 'Crear Nuevo Grupo',
+      props: {},
+    },
+    'duplicate-board': {
+      component: DuplicateBoardForm,
+      title: 'Duplicar Tablero',
+      props: { groups: groupsList.value },
+    },
+    'export-board': {
+      component: ExportBoardForm,
+      title: 'Exportar Tablero',
+      props: { groups: groupsList.value },
+    },
+    'add-column': {
+      component: AddColumnForm,
+      title: 'Agregar Columna',
+      props: {},
+    },
+    'move-group': {
+      component: MoveGroupForm,
+      title: 'Mover Grupo',
+      props: {},
+    },
+    'edit-group': {
+      component: EditGroupForm,
+      title: 'Editar Grupo',
+      props: selectedGroup.value ? { group: selectedGroup.value } : {},
+    },
+  }
 
-const openExportSidebar = () => {
-  isExportSidebarOpen.value = true
-}
+  return configs[activeSidebar.value] || null
+})
 
-const closeExportSidebar = () => {
-  isExportSidebarOpen.value = false
-}
+const sidebarEventHandlers = computed(() => {
+  if (!activeSidebar.value) return {}
 
-const openAddColumnSidebar = () => {
-  isAddColumnSidebarOpen.value = true
-}
+  const handlers = {
+    'create-group': {
+      onSubmit: handleCreateGroup,
+      onCancel: closeSidebar,
+    },
+    'duplicate-board': {
+      onSubmit: handleDuplicateForm,
+      onCancel: closeSidebar,
+    },
+    'export-board': {
+      onSubmit: handleExportForm,
+      onCancel: closeSidebar,
+    },
+    'add-column': {
+      onSubmit: handleAddColumn,
+      onCancel: closeSidebar,
+    },
+    'move-group': {
+      onSubmit: handleMoveGroup,
+      onCancel: closeSidebar,
+    },
+    'edit-group': {
+      onSubmit: handleEditGroup,
+      onDelete: handleDeleteGroup,
+      onCancel: closeSidebar,
+    },
+  }
 
-const closeAddColumnSidebar = () => {
-  isAddColumnSidebarOpen.value = false
-}
+  return handlers[activeSidebar.value] || {}
+})
 
-const openMoveGroupSidebar = () => {
-  isMoveGroupSidebarOpen.value = true
-}
-
-const closeMoveGroupSidebar = () => {
-  isMoveGroupSidebarOpen.value = false
-}
-
-const openEditGroupSidebar = () => {
-  isEditGroupSidebarOpen.value = true
-}
-
-const closeEditGroupSidebar = () => {
-  isEditGroupSidebarOpen.value = false
-}
-
+// Handlers
 const handleCreateGroup = (groupForm: NewGroup) => {
   const newId = Math.max(...groupsList.value.map((g) => g.id), 0) + 1
   const newGroup: Group = {
@@ -97,8 +137,7 @@ const handleCreateGroup = (groupForm: NewGroup) => {
   }
 
   groupsList.value.push(newGroup)
-  closeCreateGroupSidebar()
-
+  closeSidebar()
   selectedGroupId.value = newId
 }
 
@@ -106,28 +145,26 @@ const handleDuplicateForm = (selectedGroupIds: number[], keepValues: boolean) =>
   console.log('Duplicando tablero...')
   console.log('Grupos seleccionados:', selectedGroupIds)
   console.log('Conservar valores:', keepValues)
-
-  closeDuplicateGroupSidebar()
+  closeSidebar()
 }
 
 const handleExportForm = (selectedGroupIds: number[], exportView: 'groups' | 'gantt') => {
   console.log('Exportando tablero...')
   console.log('Grupos seleccionados:', selectedGroupIds)
   console.log('Vista de exportación:', exportView)
-
-  closeExportSidebar()
+  closeSidebar()
 }
 
 const handleAddColumn = (newColumn: NewColumn) => {
   const column = columnsStore.addColumn(newColumn)
   console.log('Columna agregada:', column)
-  closeAddColumnSidebar()
+  closeSidebar()
 }
 
 const handleMoveGroup = (action: 'move-and-delete' | 'move-and-keep') => {
   console.log('Mover grupo:', action)
   console.log('Grupo seleccionado:', selectedGroup.value)
-  closeMoveGroupSidebar()
+  closeSidebar()
 }
 
 const handleEditGroup = (updates: { name: string; color: string }) => {
@@ -139,7 +176,7 @@ const handleEditGroup = (updates: { name: string; color: string }) => {
     group.color = updates.color
   }
 
-  closeEditGroupSidebar()
+  closeSidebar()
 }
 
 const handleDeleteGroup = () => {
@@ -152,7 +189,7 @@ const handleDeleteGroup = () => {
     selectedGroupId.value = groupsList.value[0]?.id || 0
   }
 
-  closeEditGroupSidebar()
+  closeSidebar()
 }
 </script>
 
@@ -168,78 +205,28 @@ const handleDeleteGroup = () => {
         />
       </section>
       <section class="header--actions">
-        <button type="button" @click="openCreateGroupSidebar">Nuevo Grupo</button>
-        <button type="button" @click="openExportSidebar">Exportar</button>
-        <button type="button" @click="openDuplicateGroupSidebar">Duplicar</button>
+        <button type="button" @click="openSidebar('create-group')">Nuevo Grupo</button>
+        <button type="button" @click="openSidebar('export-board')">Exportar</button>
+        <button type="button" @click="openSidebar('duplicate-board')">Duplicar</button>
       </section>
     </section>
     <section class="main-container--body">
       <GroupView
         :selected-group="selectedGroup"
-        @add-column="openAddColumnSidebar"
-        @move-group="openMoveGroupSidebar"
-        @edit-group="openEditGroupSidebar"
+        @add-column="openSidebar('add-column')"
+        @move-group="openSidebar('move-group')"
+        @edit-group="openSidebar('edit-group')"
       />
     </section>
 
-    <!-- Sidebar para crear nuevo grupo -->
-    <SideBar :is-open="isCreateGroupSidebarOpen" @close="closeCreateGroupSidebar">
+    <!-- Dynamic Sidebar -->
+    <SideBar :is-open="!!activeSidebar" @close="closeSidebar">
       <template #header>
-        <h2>Crear Nuevo Grupo</h2>
+        <h2>{{ sidebarConfig?.title }}</h2>
       </template>
-      <CreateGroupForm @submit="handleCreateGroup" @cancel="closeCreateGroupSidebar" />
-    </SideBar>
-
-    <!-- Sidebar para duplicar tablero -->
-    <SideBar :is-open="isDuplicateGroupSidebarOpen" @close="closeDuplicateGroupSidebar">
-      <template #header>
-        <h2>Duplicar Tablero</h2>
-      </template>
-      <DuplicateBoardForm
-        :groups="groupsList"
-        @submit="handleDuplicateForm"
-        @cancel="closeDuplicateGroupSidebar"
-      />
-    </SideBar>
-
-    <!-- Sidebar para exportar tablero -->
-    <SideBar :is-open="isExportSidebarOpen" @close="closeExportSidebar">
-      <template #header>
-        <h2>Exportar Tablero</h2>
-      </template>
-      <ExportBoardForm
-        :groups="groupsList"
-        @submit="handleExportForm"
-        @cancel="closeExportSidebar"
-      />
-    </SideBar>
-
-    <!-- Sidebar para agregar columna -->
-    <SideBar :is-open="isAddColumnSidebarOpen" @close="closeAddColumnSidebar">
-      <template #header>
-        <h2>Agregar Columna</h2>
-      </template>
-      <AddColumnForm @submit="handleAddColumn" @cancel="closeAddColumnSidebar" />
-    </SideBar>
-
-    <!-- Sidebar para mover grupo -->
-    <SideBar :is-open="isMoveGroupSidebarOpen" @close="closeMoveGroupSidebar">
-      <template #header>
-        <h2>Mover Grupo</h2>
-      </template>
-      <MoveGroupForm @submit="handleMoveGroup" @cancel="closeMoveGroupSidebar" />
-    </SideBar>
-
-    <!-- Sidebar para editar grupo -->
-    <SideBar v-if="selectedGroup" :is-open="isEditGroupSidebarOpen" @close="closeEditGroupSidebar">
-      <template #header>
-        <h2>Editar Grupo</h2>
-      </template>
-      <EditGroupForm
-        :group="selectedGroup"
-        @submit="handleEditGroup"
-        @delete="handleDeleteGroup"
-        @cancel="closeEditGroupSidebar"
+      <component
+        :is="sidebarConfig?.component"
+        v-bind="{ ...sidebarConfig?.props, ...sidebarEventHandlers }"
       />
     </SideBar>
   </article>
