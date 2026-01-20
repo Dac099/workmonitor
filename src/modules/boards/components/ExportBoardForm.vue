@@ -8,17 +8,17 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  submit: [selectedGroupIds: number[], keepValues: boolean]
+  submit: [selectedGroupIds: number[], exportView: 'groups' | 'gantt']
   cancel: []
 }>()
 
-const keepValues = ref(true)
+const exportView = ref<'groups' | 'gantt'>('groups')
 const selectedGroupIds = ref<number[]>(props.groups.map((g) => g.id))
 const isSubmitting = ref(false)
 
 const handleSubmit = () => {
   isSubmitting.value = true
-  emit('submit', selectedGroupIds.value, keepValues.value)
+  emit('submit', selectedGroupIds.value, exportView.value)
   isSubmitting.value = false
 }
 
@@ -28,34 +28,36 @@ const handleCancel = () => {
 </script>
 
 <template>
-  <form @submit.prevent="handleSubmit" class="duplicate-form">
+  <form @submit.prevent="handleSubmit" class="export-form">
     <!-- Groups Selection Section -->
     <div class="form-group">
-      <h3 class="section-title">Grupos a duplicar</h3>
+      <h3 class="section-title">Grupos a exportar</h3>
       <GroupSelector v-model="selectedGroupIds" :groups="groups" />
     </div>
 
-    <!-- Keep Values Section -->
+    <!-- Export View Section -->
     <div class="form-group">
-      <h3 class="section-title">Valores</h3>
-      <p class="form-description">¿Deseas conservar los valores al duplicar el tablero?</p>
+      <h3 class="section-title">Vista de exportación</h3>
+      <p class="form-description">Selecciona el formato en el que deseas exportar el tablero</p>
 
       <div class="radio-group">
         <label class="radio-option">
-          <input v-model="keepValues" type="radio" name="keepValues" :value="true" />
+          <input v-model="exportView" type="radio" name="exportView" value="groups" />
           <span class="radio-label">
-            <strong>Sí, conservar valores</strong>
+            <strong>Vista de Grupos</strong>
             <span class="radio-description"
-              >El tablero duplicado mantendrá todos los valores actuales</span
+              >Exportar organizado por grupos con sus respectivos elementos</span
             >
           </span>
         </label>
 
         <label class="radio-option">
-          <input v-model="keepValues" type="radio" name="keepValues" :value="false" />
+          <input v-model="exportView" type="radio" name="exportView" value="gantt" />
           <span class="radio-label">
-            <strong>No, valores en blanco</strong>
-            <span class="radio-description">El tablero duplicado se creará sin valores</span>
+            <strong>Vista de Gantt</strong>
+            <span class="radio-description"
+              >Exportar como diagrama de Gantt con línea de tiempo</span
+            >
           </span>
         </label>
       </div>
@@ -67,14 +69,14 @@ const handleCancel = () => {
         Cancelar
       </button>
       <button type="submit" class="btn btn-submit" :disabled="isSubmitting">
-        {{ isSubmitting ? 'Duplicando...' : 'Duplicar Tablero' }}
+        {{ isSubmitting ? 'Exportando...' : 'Exportar Tablero' }}
       </button>
     </div>
   </form>
 </template>
 
 <style scoped>
-.duplicate-form {
+.export-form {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;

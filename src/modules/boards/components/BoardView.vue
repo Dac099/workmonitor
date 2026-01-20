@@ -6,12 +6,14 @@ import GroupView from './GroupView.vue'
 import SideBar from '@/shared/components/SideBar.vue'
 import CreateGroupForm from './CreateGroupForm.vue'
 import DuplicateBoardForm from './DuplicateBoardForm.vue'
+import ExportBoardForm from './ExportBoardForm.vue'
 import type { Group, NewGroup } from '../types/groups'
 
 const route = useRoute()
 const selectedGroupId = ref<number>(0)
 const isCreateGroupSidebarOpen = ref(false)
 const isDuplicateGroupSidebarOpen = ref(false)
+const isExportSidebarOpen = ref(false)
 
 const groupsList = ref<Group[]>([])
 
@@ -39,6 +41,14 @@ const closeDuplicateGroupSidebar = () => {
   isDuplicateGroupSidebarOpen.value = false
 }
 
+const openExportSidebar = () => {
+  isExportSidebarOpen.value = true
+}
+
+const closeExportSidebar = () => {
+  isExportSidebarOpen.value = false
+}
+
 const handleCreateGroup = (groupForm: NewGroup) => {
   const newId = Math.max(...groupsList.value.map((g) => g.id), 0) + 1
   const newGroup: Group = {
@@ -54,11 +64,19 @@ const handleCreateGroup = (groupForm: NewGroup) => {
 }
 
 const handleDuplicateForm = (selectedGroupIds: number[], keepValues: boolean) => {
-  console.log('Duplicando grupo(s)...')
+  console.log('Duplicando tablero...')
   console.log('Grupos seleccionados:', selectedGroupIds)
   console.log('Conservar valores:', keepValues)
 
   closeDuplicateGroupSidebar()
+}
+
+const handleExportForm = (selectedGroupIds: number[], exportView: 'groups' | 'gantt') => {
+  console.log('Exportando tablero...')
+  console.log('Grupos seleccionados:', selectedGroupIds)
+  console.log('Vista de exportación:', exportView)
+
+  closeExportSidebar()
 }
 </script>
 
@@ -75,7 +93,7 @@ const handleDuplicateForm = (selectedGroupIds: number[], keepValues: boolean) =>
       </section>
       <section class="header--actions">
         <button type="button" @click="openCreateGroupSidebar">Nuevo Grupo</button>
-        <button type="button">Exportar</button>
+        <button type="button" @click="openExportSidebar">Exportar</button>
         <button type="button" @click="openDuplicateGroupSidebar">Duplicar</button>
       </section>
     </section>
@@ -100,6 +118,18 @@ const handleDuplicateForm = (selectedGroupIds: number[], keepValues: boolean) =>
         :groups="groupsList"
         @submit="handleDuplicateForm"
         @cancel="closeDuplicateGroupSidebar"
+      />
+    </SideBar>
+
+    <!-- Sidebar para exportar tablero -->
+    <SideBar :is-open="isExportSidebarOpen" @close="closeExportSidebar">
+      <template #header>
+        <h2>Exportar Tablero</h2>
+      </template>
+      <ExportBoardForm
+        :groups="groupsList"
+        @submit="handleExportForm"
+        @cancel="closeExportSidebar"
       />
     </SideBar>
   </article>
