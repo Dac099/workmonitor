@@ -12,13 +12,297 @@ import AddColumnForm from './AddColumnForm.vue'
 import MoveGroupForm from './MoveGroupForm.vue'
 import EditGroupForm from './EditGroupForm.vue'
 import type { Group, NewGroup } from '../types/groups'
+import type { Item, SubItem } from '../types/items'
+import type { Value } from '../types/values'
+import type { Chat } from '../types/chats'
 import type { NewColumn } from '@/shared/types/columns'
 
 const route = useRoute()
 const columnsStore = useColumnsStore()
 
 const selectedGroupId = ref<number>(0)
-const groupsList = ref<Group[]>([])
+
+// Dummy Data Structure: {group, items: {values, chats, subItems}}[]
+type GroupWithItems = {
+  group: Group
+  items: {
+    item: Item
+    values: Value[]
+    chats: Chat[]
+    subItems: SubItem[]
+  }[]
+}
+
+const boardData = ref<GroupWithItems[]>([
+  {
+    group: { id: 1, name: 'Desarrollo Frontend', color: '#4CAF50' },
+    items: [
+      {
+        item: { id: 'item-1-1', projectId: 'proj-1', name: 'Implementar Dashboard', position: 1 },
+        values: [
+          { id: 'val-1-1-1', itemId: 'item-1-1', columnId: 'col-status', value: 'En Progreso' },
+          { id: 'val-1-1-2', itemId: 'item-1-1', columnId: 'col-priority', value: 'Alta' },
+          { id: 'val-1-1-3', itemId: 'item-1-1', columnId: 'col-assignee', value: 'Juan Pérez' },
+        ],
+        chats: [
+          {
+            id: 'chat-1-1-1',
+            itemId: 'item-1-1',
+            message: '¿Necesitamos usar gráficos interactivos?',
+            createdBy: 'María García',
+            responses: '2',
+            tasks: '1',
+          },
+        ],
+        subItems: [
+          { id: 'sub-1-1-1', itemId: 'item-1-1', name: 'Diseñar componentes de gráficos' },
+          { id: 'sub-1-1-2', itemId: 'item-1-1', name: 'Integrar API de datos' },
+        ],
+      },
+      {
+        item: { id: 'item-1-2', projectId: 'proj-1', name: 'Optimizar rendimiento', position: 2 },
+        values: [
+          { id: 'val-1-2-1', itemId: 'item-1-2', columnId: 'col-status', value: 'Pendiente' },
+          { id: 'val-1-2-2', itemId: 'item-1-2', columnId: 'col-priority', value: 'Media' },
+          { id: 'val-1-2-3', itemId: 'item-1-2', columnId: 'col-assignee', value: 'Ana López' },
+        ],
+        chats: [],
+        subItems: [{ id: 'sub-1-2-1', itemId: 'item-1-2', name: 'Analizar bundle size' }],
+      },
+    ],
+  },
+  {
+    group: { id: 2, name: 'Backend API', color: '#2196F3' },
+    items: [
+      {
+        item: { id: 'item-2-1', projectId: 'proj-2', name: 'Crear endpoints REST', position: 1 },
+        values: [
+          { id: 'val-2-1-1', itemId: 'item-2-1', columnId: 'col-status', value: 'Completado' },
+          { id: 'val-2-1-2', itemId: 'item-2-1', columnId: 'col-priority', value: 'Alta' },
+          { id: 'val-2-1-3', itemId: 'item-2-1', columnId: 'col-assignee', value: 'Carlos Ruiz' },
+        ],
+        chats: [
+          {
+            id: 'chat-2-1-1',
+            itemId: 'item-2-1',
+            message: 'Endpoints documentados en Swagger',
+            createdBy: 'Carlos Ruiz',
+            responses: '0',
+            tasks: '0',
+          },
+        ],
+        subItems: [
+          { id: 'sub-2-1-1', itemId: 'item-2-1', name: 'GET /api/users' },
+          { id: 'sub-2-1-2', itemId: 'item-2-1', name: 'POST /api/users' },
+          { id: 'sub-2-1-3', itemId: 'item-2-1', name: 'PUT /api/users/:id' },
+        ],
+      },
+      {
+        item: {
+          id: 'item-2-2',
+          projectId: 'proj-2',
+          name: 'Implementar autenticación JWT',
+          position: 2,
+        },
+        values: [
+          { id: 'val-2-2-1', itemId: 'item-2-2', columnId: 'col-status', value: 'En Progreso' },
+          { id: 'val-2-2-2', itemId: 'item-2-2', columnId: 'col-priority', value: 'Crítica' },
+          {
+            id: 'val-2-2-3',
+            itemId: 'item-2-2',
+            columnId: 'col-assignee',
+            value: 'Laura Martínez',
+          },
+        ],
+        chats: [
+          {
+            id: 'chat-2-2-1',
+            itemId: 'item-2-2',
+            message: '¿Usamos refresh tokens?',
+            createdBy: 'Pedro Sánchez',
+            responses: '3',
+            tasks: '2',
+          },
+        ],
+        subItems: [
+          { id: 'sub-2-2-1', itemId: 'item-2-2', name: 'Configurar JWT secret' },
+          { id: 'sub-2-2-2', itemId: 'item-2-2', name: 'Middleware de autenticación' },
+        ],
+      },
+    ],
+  },
+  {
+    group: { id: 3, name: 'Testing & QA', color: '#FF9800' },
+    items: [
+      {
+        item: {
+          id: 'item-3-1',
+          projectId: 'proj-3',
+          name: 'Tests unitarios componentes',
+          position: 1,
+        },
+        values: [
+          { id: 'val-3-1-1', itemId: 'item-3-1', columnId: 'col-status', value: 'En Progreso' },
+          { id: 'val-3-1-2', itemId: 'item-3-1', columnId: 'col-priority', value: 'Media' },
+          { id: 'val-3-1-3', itemId: 'item-3-1', columnId: 'col-assignee', value: 'Sofia Torres' },
+        ],
+        chats: [
+          {
+            id: 'chat-3-1-1',
+            itemId: 'item-3-1',
+            message: 'Cobertura actual: 65%',
+            createdBy: 'Sofia Torres',
+            responses: '1',
+            tasks: '0',
+          },
+        ],
+        subItems: [
+          { id: 'sub-3-1-1', itemId: 'item-3-1', name: 'Test GroupView component' },
+          { id: 'sub-3-1-2', itemId: 'item-3-1', name: 'Test BoardView component' },
+        ],
+      },
+      {
+        item: {
+          id: 'item-3-2',
+          projectId: 'proj-3',
+          name: 'Tests E2E flujo principal',
+          position: 2,
+        },
+        values: [
+          { id: 'val-3-2-1', itemId: 'item-3-2', columnId: 'col-status', value: 'Pendiente' },
+          { id: 'val-3-2-2', itemId: 'item-3-2', columnId: 'col-priority', value: 'Alta' },
+          { id: 'val-3-2-3', itemId: 'item-3-2', columnId: 'col-assignee', value: 'Diego Morales' },
+        ],
+        chats: [],
+        subItems: [{ id: 'sub-3-2-1', itemId: 'item-3-2', name: 'Configurar Playwright' }],
+      },
+    ],
+  },
+  {
+    group: { id: 4, name: 'Diseño UX/UI', color: '#E91E63' },
+    items: [
+      {
+        item: { id: 'item-4-1', projectId: 'proj-4', name: 'Rediseño de navegación', position: 1 },
+        values: [
+          { id: 'val-4-1-1', itemId: 'item-4-1', columnId: 'col-status', value: 'En Revisión' },
+          { id: 'val-4-1-2', itemId: 'item-4-1', columnId: 'col-priority', value: 'Alta' },
+          { id: 'val-4-1-3', itemId: 'item-4-1', columnId: 'col-assignee', value: 'Elena Vargas' },
+        ],
+        chats: [
+          {
+            id: 'chat-4-1-1',
+            itemId: 'item-4-1',
+            message: 'Prototipo en Figma listo para review',
+            createdBy: 'Elena Vargas',
+            responses: '5',
+            tasks: '1',
+          },
+          {
+            id: 'chat-4-1-2',
+            itemId: 'item-4-1',
+            message: 'Necesitamos feedback del equipo',
+            createdBy: 'Roberto Díaz',
+            responses: '2',
+            tasks: '0',
+          },
+        ],
+        subItems: [
+          { id: 'sub-4-1-1', itemId: 'item-4-1', name: 'Wireframes mobile' },
+          { id: 'sub-4-1-2', itemId: 'item-4-1', name: 'Wireframes desktop' },
+          { id: 'sub-4-1-3', itemId: 'item-4-1', name: 'Sistema de navegación' },
+        ],
+      },
+      {
+        item: { id: 'item-4-2', projectId: 'proj-4', name: 'Guía de estilos', position: 2 },
+        values: [
+          { id: 'val-4-2-1', itemId: 'item-4-2', columnId: 'col-status', value: 'Completado' },
+          { id: 'val-4-2-2', itemId: 'item-4-2', columnId: 'col-priority', value: 'Media' },
+          { id: 'val-4-2-3', itemId: 'item-4-2', columnId: 'col-assignee', value: 'Elena Vargas' },
+        ],
+        chats: [],
+        subItems: [
+          { id: 'sub-4-2-1', itemId: 'item-4-2', name: 'Paleta de colores' },
+          { id: 'sub-4-2-2', itemId: 'item-4-2', name: 'Tipografía' },
+        ],
+      },
+    ],
+  },
+  {
+    group: { id: 5, name: 'DevOps & Infraestructura', color: '#9C27B0' },
+    items: [
+      {
+        item: {
+          id: 'item-5-1',
+          projectId: 'proj-5',
+          name: 'Configurar CI/CD pipeline',
+          position: 1,
+        },
+        values: [
+          { id: 'val-5-1-1', itemId: 'item-5-1', columnId: 'col-status', value: 'En Progreso' },
+          { id: 'val-5-1-2', itemId: 'item-5-1', columnId: 'col-priority', value: 'Crítica' },
+          { id: 'val-5-1-3', itemId: 'item-5-1', columnId: 'col-assignee', value: 'Miguel Ángel' },
+        ],
+        chats: [
+          {
+            id: 'chat-5-1-1',
+            itemId: 'item-5-1',
+            message: 'Pipeline configurado en GitHub Actions',
+            createdBy: 'Miguel Ángel',
+            responses: '1',
+            tasks: '3',
+          },
+        ],
+        subItems: [
+          { id: 'sub-5-1-1', itemId: 'item-5-1', name: 'Setup build workflow' },
+          { id: 'sub-5-1-2', itemId: 'item-5-1', name: 'Setup test workflow' },
+          { id: 'sub-5-1-3', itemId: 'item-5-1', name: 'Setup deploy workflow' },
+        ],
+      },
+      {
+        item: { id: 'item-5-2', projectId: 'proj-5', name: 'Monitoreo y logs', position: 2 },
+        values: [
+          { id: 'val-5-2-1', itemId: 'item-5-2', columnId: 'col-status', value: 'Pendiente' },
+          { id: 'val-5-2-2', itemId: 'item-5-2', columnId: 'col-priority', value: 'Media' },
+          {
+            id: 'val-5-2-3',
+            itemId: 'item-5-2',
+            columnId: 'col-assignee',
+            value: 'Patricia Ramos',
+          },
+        ],
+        chats: [
+          {
+            id: 'chat-5-2-1',
+            itemId: 'item-5-2',
+            message: '¿Usamos Datadog o New Relic?',
+            createdBy: 'Patricia Ramos',
+            responses: '4',
+            tasks: '0',
+          },
+        ],
+        subItems: [
+          { id: 'sub-5-2-1', itemId: 'item-5-2', name: 'Configurar logging centralizado' },
+          { id: 'sub-5-2-2', itemId: 'item-5-2', name: 'Alertas de errores' },
+        ],
+      },
+      {
+        item: { id: 'item-5-3', projectId: 'proj-5', name: 'Optimización de Docker', position: 3 },
+        values: [
+          { id: 'val-5-3-1', itemId: 'item-5-3', columnId: 'col-status', value: 'En Progreso' },
+          { id: 'val-5-3-2', itemId: 'item-5-3', columnId: 'col-priority', value: 'Baja' },
+          { id: 'val-5-3-3', itemId: 'item-5-3', columnId: 'col-assignee', value: 'Miguel Ángel' },
+        ],
+        chats: [],
+        subItems: [
+          { id: 'sub-5-3-1', itemId: 'item-5-3', name: 'Multi-stage builds' },
+          { id: 'sub-5-3-2', itemId: 'item-5-3', name: 'Reducir tamaño de imagen' },
+        ],
+      },
+    ],
+  },
+])
+
+const groupsList = ref<Group[]>(boardData.value.map((gd) => gd.group))
 
 // Unified sidebar state
 type SidebarType =
