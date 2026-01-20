@@ -5,7 +5,7 @@ import GroupsList from './GroupsList.vue'
 import GroupView from './GroupView.vue'
 import SideBar from '@/shared/components/SideBar.vue'
 import CreateGroupForm from './CreateGroupForm.vue'
-import DuplicateGroupForm from './DuplicateGroupForm.vue'
+import DuplicateBoardForm from './DuplicateBoardForm.vue'
 import type { Group, NewGroup } from '../types/groups'
 
 const route = useRoute()
@@ -50,33 +50,15 @@ const handleCreateGroup = (groupForm: NewGroup) => {
   groupsList.value.push(newGroup)
   closeCreateGroupSidebar()
 
-  // Seleccionar el nuevo grupo automáticamente
   selectedGroupId.value = newId
 }
 
-const handleDuplicateGroup = (keepValues: boolean) => {
-  const selectedGroup = groupsList.value.find((g) => g.id === selectedGroupId.value)
+const handleDuplicateForm = (selectedGroupIds: number[], keepValues: boolean) => {
+  console.log('Duplicando grupo(s)...')
+  console.log('Grupos seleccionados:', selectedGroupIds)
+  console.log('Conservar valores:', keepValues)
 
-  if (!selectedGroup) {
-    console.warn('No hay grupo seleccionado para duplicar')
-    closeDuplicateGroupSidebar()
-    return
-  }
-
-  const newId = Math.max(...groupsList.value.map((g) => g.id), 0) + 1
-  const newGroup: Group = {
-    id: newId,
-    name: `${selectedGroup.name} (Copia)`,
-    color: selectedGroup.color,
-  }
-
-  groupsList.value.push(newGroup)
   closeDuplicateGroupSidebar()
-
-  // Seleccionar el grupo duplicado automáticamente
-  selectedGroupId.value = newId
-
-  console.log(`Grupo duplicado ${keepValues ? 'con' : 'sin'} valores`)
 }
 </script>
 
@@ -109,12 +91,16 @@ const handleDuplicateGroup = (keepValues: boolean) => {
       <CreateGroupForm @submit="handleCreateGroup" @cancel="closeCreateGroupSidebar" />
     </SideBar>
 
-    <!-- Sidebar para duplicar grupo -->
+    <!-- Sidebar para duplicar tablero -->
     <SideBar :is-open="isDuplicateGroupSidebarOpen" @close="closeDuplicateGroupSidebar">
       <template #header>
-        <h2>Duplicar Grupo</h2>
+        <h2>Duplicar Tablero</h2>
       </template>
-      <DuplicateGroupForm @submit="handleDuplicateGroup" @cancel="closeDuplicateGroupSidebar" />
+      <DuplicateBoardForm
+        :groups="groupsList"
+        @submit="handleDuplicateForm"
+        @cancel="closeDuplicateGroupSidebar"
+      />
     </SideBar>
   </article>
 </template>
