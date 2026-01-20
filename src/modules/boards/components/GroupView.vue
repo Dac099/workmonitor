@@ -4,6 +4,24 @@ import type { Group } from '../types/groups'
 defineProps<{
   selectedGroup: Group | null
 }>()
+
+const emit = defineEmits<{
+  addColumn: []
+  moveGroup: []
+  editGroup: []
+}>()
+
+const handleAddColumn = () => {
+  emit('addColumn')
+}
+
+const handleMoveGroup = () => {
+  emit('moveGroup')
+}
+
+const handleEditGroup = () => {
+  emit('editGroup')
+}
 </script>
 
 <template>
@@ -13,7 +31,21 @@ defineProps<{
         <h2 class="group-title" :style="{ color: selectedGroup.color }">
           {{ selectedGroup.name }}
         </h2>
-        <span class="group-id">ID: {{ selectedGroup.id }}</span>
+
+        <div class="group-actions">
+          <button type="button" class="action-btn" @click="handleAddColumn" title="Agregar columna">
+            <i class="nf nf-md-table_column_plus_after"></i>
+            <span class="action-label">Agregar columna</span>
+          </button>
+          <button type="button" class="action-btn" @click="handleMoveGroup" title="Mover grupo">
+            <i class="nf nf-md-folder_move"></i>
+            <span class="action-label">Mover</span>
+          </button>
+          <button type="button" class="action-btn" @click="handleEditGroup" title="Editar grupo">
+            <i class="nf nf-md-pencil"></i>
+            <span class="action-label">Editar</span>
+          </button>
+        </div>
       </header>
 
       <section class="group-body">
@@ -49,20 +81,52 @@ defineProps<{
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 1rem;
 }
 
 .group-title {
   margin: 0;
   font-size: 1.5rem;
   font-weight: 500;
+  flex: 1;
 }
 
-.group-id {
+.group-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 8px 12px;
+  border: 1px solid #dadce0;
+  border-radius: 4px;
+  background-color: white;
+  color: #202124;
   font-size: 0.875rem;
-  color: #5f6368;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.action-btn:hover {
   background-color: #f1f3f4;
-  padding: 4px 12px;
-  border-radius: 12px;
+  border-color: #1a73e8;
+}
+
+.action-btn:active {
+  background-color: #e8eaed;
+}
+
+.action-btn i {
+  font-size: 1.125rem;
+  line-height: 1;
+}
+
+.action-label {
+  font-weight: 500;
 }
 
 .group-body {
