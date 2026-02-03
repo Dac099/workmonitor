@@ -1,16 +1,13 @@
 export type Board = {
   id: number
+  workspaceId: string
+  workspaceName: string
   name: string
-  category: string
-  createdAt: Date
-  ownerId: number
+  description: string | null
 }
 
 export type SubmitBoardDto = {
   name: string
-  category: string
-  mainView: string
-  isPersonal: boolean
-  ownerId: number
-  createdAt: Date
+  workspaceId: string
+  description: string | null
 }

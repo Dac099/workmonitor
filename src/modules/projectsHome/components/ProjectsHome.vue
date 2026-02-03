@@ -2,66 +2,29 @@
 import { computed, type Ref, ref } from 'vue'
 import { type Board, type SubmitBoardDto } from '../types/board'
 import { useRouter } from 'vue-router'
-import getDateString from '@/utils/transformers'
 import Sidebar from '@/shared/components/SideBar.vue'
 import BoardForm from './BoardForm.vue'
+import BoardsList from './BoardsList.vue'
+import { API_BASE_URL } from '@/utils/contants'
+import LoaderComponent from '@/core/components/LoaderComponent.vue'
 
 const router = useRouter()
 const isSidebarOpen: Ref<boolean> = ref(false)
-const boards: Ref<Board[]> = ref([
-  {
-    id: 1,
-    name: 'Proyectos 2025',
-    category: 'Proyectos',
-    createdAt: new Date(),
-    ownerId: 1,
-  },
-  {
-    id: 2,
-    name: 'Global Planning',
-    category: 'Proyectos',
-    createdAt: new Date(),
-    ownerId: 1,
-  },
-  {
-    id: 3,
-    name: 'Personal Goals',
-    category: 'Proyectos',
-    createdAt: new Date(),
-    ownerId: 2,
-  },
-  {
-    id: 4,
-    name: 'Manager Team',
-    category: 'Marketing',
-    createdAt: new Date(),
-    ownerId: 2,
-  },
-  {
-    id: 5,
-    name: 'Development Sprint',
-    category: 'Desarrollo',
-    createdAt: new Date(),
-    ownerId: 1,
-  },
-])
-const activeFilter: Ref<'all' | 'personal'> = ref('all')
+const loading: Ref<boolean> = ref(true)
+const error: Ref<string | null> = ref(null)
+const boards: Ref<Board[]> = ref([])
 
-const filteredBoards = computed(() => {
-  if (activeFilter.value === 'all') {
-    return boards.value
-  } else {
-    return boards.value.filter((board) => board.ownerId === 2)
-  }
-})
-
-const isTabActive = (tab: 'all' | 'personal') => {
-  return activeFilter.value === tab
-}
-
-const setFilter = (filter: 'all' | 'personal') => {
-  activeFilter.value = filter
-}
+fetch(`${API_BASE_URL}/boards`)
+  .then((response) => response.json())
+  .then((data) => {
+    boards.value = data
+  })
+  .catch((err) => {
+    error.value = err.message
+  })
+  .finally(() => {
+    loading.value = false
+  })
 
 const closeSidebar = () => {
   isSidebarOpen.value = false
@@ -71,15 +34,22 @@ const openSidebar = () => {
   isSidebarOpen.value = true
 }
 
-const addNewBoard = (newBoard: SubmitBoardDto) => {
-  boards.value.push({
-    id: boards.value.length + 1,
-    ...newBoard,
-  })
-}
+const searchQuery: Ref<string> = ref('')
 
-const goToBoard = (boardId: number) => {
-  router.push(`/projects/boards/${boardId}`)
+const filteredBoards = computed(() => {
+  if (!searchQuery.value.trim()) {
+    return boards.value
+  }
+  const query = searchQuery.value.toLowerCase()
+  return boards.value.filter((board) => {
+    const workspaceName = (board.workspaceName || '').toLowerCase()
+    const boardName = (board.name || '').toLowerCase()
+    return workspaceName.includes(query) || boardName.includes(query)
+  })
+})
+
+const addNewBoard = (newBoard: SubmitBoardDto) => {
+  console.log('New Board Submitted:', newBoard)
 }
 
 const handleSubmitNewBoard = (newBoard: SubmitBoardDto) => {
@@ -91,43 +61,19 @@ const handleSubmitNewBoard = (newBoard: SubmitBoardDto) => {
 <template>
   <article class="main-container">
     <article class="data-container">
-      <section class="container--header">
-        <h1>Tableros</h1>
-      </section>
-      <section class="boards-controllers">
-        <div>
-          <button
-            type="button"
-            :class="isTabActive('all') ? 'active-tab' : ''"
-            @click="setFilter('all')"
-          >
-            Todos
-          </button>
-          <button
-            type="button"
-            :class="isTabActive('personal') ? 'active-tab' : ''"
-            @click="setFilter('personal')"
-          >
-            Personales
-          </button>
-        </div>
-        <button type="button" @click="openSidebar()">Agregar tablero</button>
-      </section>
-      <section class="boards-grid">
-        <article
-          v-for="board in filteredBoards"
-          :key="board.id"
-          class="boards-grid--card"
-          @click="goToBoard(board.id)"
-        >
-          <div class="card-header">
-            <i class="nf nf-fa-table_list icon"></i>
-            <h4 :title="board.name">{{ board.name }}</h4>
-          </div>
-          <p>{{ board.category }}</p>
-          <p class="card--date">{{ getDateString(board.createdAt) }}</p>
-        </article>
-      </section>
+      <h1>Tableros</h1>
+      <div class="search-container" v-if="!loading">
+        <input
+          v-model="searchQuery"
+          type="text"
+          class="search-input"
+          placeholder="Buscar por workspace o nombre del board..."
+        />
+      </div>
+      <article class="loader-container" v-if="loading">
+        <LoaderComponent />
+      </article>
+      <BoardsList v-if="!loading" :boards="filteredBoards" />
     </article>
   </article>
   <Sidebar :is-open="isSidebarOpen" @close="closeSidebar">
@@ -158,90 +104,36 @@ h2 {
   margin: 0 auto;
 }
 
-.boards-controllers {
+.search-container {
+  margin: 20px 0;
+}
+
+.search-input {
   width: 100%;
-  height: max-content;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  border-radius: 5px;
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 10px;
-}
-
-.active-tab {
-  background-color: var(--dark-color);
-  color: var(--main-color);
-}
-
-.boards-controllers div button:first-child {
-  border-top-left-radius: 5px;
-  border-bottom-left-radius: 5px;
-}
-
-.boards-controllers > button:last-child {
-  border-top-right-radius: 5px;
-  border-bottom-right-radius: 5px;
-  border: none;
-}
-
-button {
-  cursor: pointer;
-  color: var(--dark-color);
-  padding: 5px;
-  outline: none;
-  border: none;
-  transition: all 250ms ease-in-out;
-  border-right: 1px solid var(--shadow-color);
-}
-
-button:hover {
-  transform: scale(1.2);
-  border-radius: 0;
-  color: var(--main-color);
-  background-color: var(--dark-color);
-}
-
-.boards-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 10px;
-}
-
-.boards-grid--card {
-  background-color: var(--sec-color);
+  padding: 10px 14px;
+  font-size: 14px;
   border: 1px solid var(--ter-color);
-  border-radius: 5px;
-  padding: 10px 16px;
-  transition: transform 0.2s;
-  cursor: pointer;
+  border-radius: 6px;
+  background-color: var(--main-color);
+  color: var(--dark-color);
+  font-family: 'Poppins', sans-serif;
+  transition: all 0.3s ease;
 }
 
-.boards-grid--card:hover {
-  transform: scale(1.02);
-  box-shadow: 0 4px 8px var(--shadow-color);
-  border-radius: 0;
+.search-input:focus {
+  outline: none;
+  border-color: var(--contrast-color);
+  box-shadow: 0 0 0 3px rgba(43, 130, 240, 0.1);
 }
 
-.card-header {
+.search-input::placeholder {
+  color: #999;
+}
+
+.loader-container {
   display: flex;
+  justify-content: center;
   align-items: center;
-  gap: 10px;
-}
-
-.card-header h4 {
-  text-wrap: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.icon {
-  color: var(--contrast-color);
-}
-
-.card--date {
-  color: var(--ter-color);
-  font-size: 0.8rem;
-  text-align: right;
-  margin-top: 15px;
+  height: 200px;
 }
 </style>

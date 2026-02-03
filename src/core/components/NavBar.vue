@@ -25,7 +25,7 @@ const closeSidebar = () => {
 
     <!-- Navegación desktop -->
     <section class="navList navList--desktop">
-      <RouterLink class="navListItem" to="/projects"> Proyectos </RouterLink>
+      <RouterLink class="navListItem" to="/projects"> Tableros </RouterLink>
       <RouterLink class="navListItem" to="/reports"> Reportes </RouterLink>
       <RouterLink class="navListItem" to="/tracking"> Seguimiento </RouterLink>
       <RouterLink class="navListItem" to="/account"> Cuenta </RouterLink>
@@ -38,7 +38,7 @@ const closeSidebar = () => {
     <aside class="sidebar" :class="{ 'sidebar--open': isSidebarOpen }">
       <nav class="sidebar__nav">
         <RouterLink class="sidebar__item" to="/projects" @click="closeSidebar">
-          Proyectos
+          Tableros
         </RouterLink>
         <RouterLink class="sidebar__item" to="/reports" @click="closeSidebar">
           Reportes
@@ -50,7 +50,7 @@ const closeSidebar = () => {
       </nav>
     </aside>
   </article>
-  <hr>
+  <hr />
 </template>
 
 <style scoped>
