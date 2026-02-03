@@ -1,14 +1,12 @@
 <script setup lang="ts">
 import { computed, type Ref, ref } from 'vue'
-import { type Board, type SubmitBoardDto } from '../types/board'
-import { useRouter } from 'vue-router'
+import { type Board } from '../types/board'
 import Sidebar from '@/shared/components/SideBar.vue'
 import BoardForm from './BoardForm.vue'
 import BoardsList from './BoardsList.vue'
 import { API_BASE_URL } from '@/utils/contants'
 import LoaderComponent from '@/core/components/LoaderComponent.vue'
 
-const router = useRouter()
 const isSidebarOpen: Ref<boolean> = ref(false)
 const loading: Ref<boolean> = ref(true)
 const error: Ref<string | null> = ref(null)
@@ -48,12 +46,8 @@ const filteredBoards = computed(() => {
   })
 })
 
-const addNewBoard = (newBoard: SubmitBoardDto) => {
-  console.log('New Board Submitted:', newBoard)
-}
-
-const handleSubmitNewBoard = (newBoard: SubmitBoardDto) => {
-  addNewBoard(newBoard)
+const handleSubmitNewBoard = (newBoard: Board) => {
+  boards.value.push(newBoard)
   closeSidebar()
 }
 </script>
@@ -61,7 +55,10 @@ const handleSubmitNewBoard = (newBoard: SubmitBoardDto) => {
 <template>
   <article class="main-container">
     <article class="data-container">
-      <h1>Tableros</h1>
+      <section class="data-container--header">
+        <h1>Tableros</h1>
+        <button @click="openSidebar">Nuevo Tablero</button>
+      </section>
       <div class="search-container" v-if="!loading">
         <input
           v-model="searchQuery"
@@ -102,6 +99,28 @@ h2 {
   height: 100%;
   max-width: 1200px;
   margin: 0 auto;
+}
+
+.data-container--header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.data-container--header button {
+  padding: 10px 16px;
+  background-color: var(--dark-color);
+  color: var(--main-color);
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.data-container--header button:hover {
+  background-color: var(--contrast-color);
 }
 
 .search-container {

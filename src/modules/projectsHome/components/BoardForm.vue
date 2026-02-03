@@ -1,86 +1,185 @@
 <script lang="ts" setup>
-import { ref, type Ref } from 'vue'
-import type { SubmitBoardDto } from '../types/board'
+import { ref, type Ref, onMounted, computed } from 'vue'
+import type { SubmitBoardDto, Board } from '../types/board'
+import { API_BASE_URL } from '@/utils/contants'
+import type { Workspace } from '../types/workspace'
 
 const boardName: Ref<string> = ref('')
-const category: Ref<string> = ref('')
-const mainView: Ref<string> = ref('groups')
-const isPersonal: Ref<boolean> = ref(false)
-const options: Ref<string[]> = ref(['Proyectos', 'Diseño', 'Cobranza', 'Servicios'])
-const showInput: Ref<boolean> = ref(false)
-const newCategoryName: Ref<string> = ref('')
+const boardDescription: Ref<string> = ref('')
+const workspaceId: Ref<string> = ref('')
+const showWorkspaceForm: Ref<boolean> = ref(false)
+const newWorkspaceName: Ref<string> = ref('')
+const newWorkspaceDescription: Ref<string> = ref('')
+const workspaces: Ref<Array<Workspace>> = ref([])
+const loadingWorkspaces: Ref<boolean> = ref(true)
+const creatingWorkspace: Ref<boolean> = ref(false)
+const creatingBoard: Ref<boolean> = ref(false)
 
 const emit = defineEmits<{
-  (e: 'submit', board: SubmitBoardDto): void
+  (e: 'submit', board: Board): void
+  (e: 'error', error: string): void
 }>()
 
-const handleSubmit = () => {
-  emit('submit', {
-    category: category.value,
-    mainView: mainView.value,
-    isPersonal: isPersonal.value,
-    name: boardName.value,
-    ownerId: 2,
-    createdAt: new Date(),
-  })
+const selectedWorkspace = computed(() => {
+  return workspaces.value.find((w) => w.id === workspaceId.value)
+})
+
+onMounted(async () => {
+  await fetchWorkspaces()
+})
+
+const fetchWorkspaces = async () => {
+  try {
+    loadingWorkspaces.value = true
+    const response = await fetch(`${API_BASE_URL}/workspaces`)
+    const data = await response.json()
+    workspaces.value = data
+  } catch (error) {
+    console.error('Error al cargar workspaces:', error)
+  } finally {
+    loadingWorkspaces.value = false
+  }
 }
 
-const addNewOption = (newOption: string) => {
-  if (!newOption) return
-  options.value.push(newOption)
-  newCategoryName.value = ''
-  toggleInput()
+const handleSubmit = async () => {
+  if (!boardName.value || !workspaceId.value) return
+
+  try {
+    creatingBoard.value = true
+    const boardData: SubmitBoardDto = {
+      name: boardName.value,
+      workspaceId: workspaceId.value,
+      description: boardDescription.value || null,
+    }
+
+    const response = await fetch(`${API_BASE_URL}/boards`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(boardData),
+    })
+
+    if (!response.ok) {
+      throw new Error('Error al crear el tablero')
+    }
+
+    const createdBoard: Board = await response.json()
+
+    emit('submit', {
+      ...createdBoard,
+      workspaceName: selectedWorkspace.value?.name || '',
+    })
+
+    boardName.value = ''
+    boardDescription.value = ''
+    workspaceId.value = ''
+  } catch (error) {
+    console.error('Error al crear board:', error)
+    emit('error', error instanceof Error ? error.message : 'Error desconocido')
+  } finally {
+    creatingBoard.value = false
+  }
 }
 
-const toggleInput = () => {
-  showInput.value = !showInput.value
+const createWorkspace = async () => {
+  if (!newWorkspaceName.value.trim()) return
+
+  try {
+    creatingWorkspace.value = true
+    const response = await fetch(`${API_BASE_URL}/workspaces`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        name: newWorkspaceName.value,
+        description: newWorkspaceDescription.value || null,
+      }),
+    })
+
+    if (response.ok) {
+      const newWorkspace = await response.json()
+      workspaces.value.push(newWorkspace)
+      workspaceId.value = newWorkspace.id
+      newWorkspaceName.value = ''
+      newWorkspaceDescription.value = ''
+      showWorkspaceForm.value = false
+    }
+  } catch (error) {
+    console.error('Error al crear workspace:', error)
+  } finally {
+    creatingWorkspace.value = false
+  }
+}
+
+const toggleWorkspaceForm = () => {
+  showWorkspaceForm.value = !showWorkspaceForm.value
 }
 </script>
 
 <template>
-  <form action="#">
+  <form @submit.prevent="handleSubmit">
     <div class="input-group">
       <label for="boardName">Nombre del tablero</label>
-      <input type="text" name="boardName" id="boardName" v-model="boardName" />
+      <input type="text" name="boardName" id="boardName" v-model="boardName" required />
+    </div>
+
+    <div class="input-group">
+      <label for="boardDescription">Descripción</label>
+      <textarea
+        name="boardDescription"
+        id="boardDescription"
+        v-model="boardDescription"
+        rows="3"
+        placeholder="Descripción del tablero (opcional)"
+      ></textarea>
     </div>
 
     <div class="input-group">
       <div class="input-group--controls">
-        <label for="category">Categoría</label>
-        <i class="nf nf-fa-square_plus" @click="toggleInput()"></i>
+        <label for="workspace">Workspace</label>
+        <i
+          class="nf nf-fa-square_plus"
+          @click="toggleWorkspaceForm"
+          title="Crear nuevo workspace"
+        ></i>
       </div>
-      <input
-        type="text"
-        v-model="newCategoryName"
-        @keyup.enter.prevent="addNewOption(newCategoryName)"
-        v-if="showInput"
-        autocapitalize="true"
-        autofocus="true"
-      />
-      <select name="category" id="category" v-model="category">
-        <option value="">Selecciona una categoría</option>
-        <option v-for="opt in options" :value="opt" :key="opt">{{ opt }}</option>
-      </select>
-    </div>
 
-    <div class="input-group">
-      <label for="mainView">Vista principal</label>
-      <select name="mainView" id="mainView" v-model="mainView">
-        <option value="groups">Grupos</option>
-        <option value="gantt">Gantt</option>
-      </select>
-    </div>
+      <div v-if="showWorkspaceForm" class="workspace-form">
+        <input
+          type="text"
+          v-model="newWorkspaceName"
+          placeholder="Nombre del workspace"
+          autofocus
+        />
+        <textarea
+          v-model="newWorkspaceDescription"
+          placeholder="Descripción del workspace (opcional)"
+          rows="2"
+        ></textarea>
+        <div class="workspace-form-controls">
+          <button type="button" @click="createWorkspace" :disabled="creatingWorkspace">
+            {{ creatingWorkspace ? 'Creando...' : 'Crear' }}
+          </button>
+          <button type="button" @click="toggleWorkspaceForm">Cancelar</button>
+        </div>
+      </div>
 
-    <div class="input-group">
-      <label for="isPersonal">Uso personal</label>
-      <input type="checkbox" name="isPersonal" id="isPersonal" v-model="isPersonal" />
-      <small
-        >Por defecto un tablero personal solo es visible por ti. Esto puede cambiarse después</small
-      >
+      <select name="workspace" id="workspace" v-model="workspaceId" required>
+        <option value="">
+          {{ loadingWorkspaces ? 'Cargando...' : 'Selecciona un workspace' }}
+        </option>
+        <option v-for="workspace in workspaces" :value="workspace.id" :key="workspace.id">
+          {{ workspace.name }}
+        </option>
+      </select>
     </div>
 
     <div class="form-controls">
-      <button type="button" @click="handleSubmit()">Guardar</button>
+      <button type="submit" :disabled="!boardName || !workspaceId || creatingBoard">
+        {{ creatingBoard ? 'Creando...' : 'Crear Tablero' }}
+      </button>
     </div>
   </form>
 </template>
@@ -108,7 +207,8 @@ label {
 }
 
 input[type='text'],
-select {
+select,
+textarea {
   padding: 0.75rem 1rem;
   border: 2px solid var(--ter-color);
   border-radius: 5px;
@@ -116,10 +216,17 @@ select {
   background-color: var(--sec-color);
   color: var(--dark-color);
   transition: all 0.3s ease;
+  font-family: 'Poppins', sans-serif;
+}
+
+textarea {
+  resize: vertical;
+  min-height: 60px;
 }
 
 input[type='text']:focus,
-select:focus {
+select:focus,
+textarea:focus {
   outline: none;
   border-color: var(--contrast-color);
   background-color: var(--main-color);
@@ -161,6 +268,39 @@ input[type='checkbox'] {
   color: var(--dark-color);
 }
 
+.input-group--controls i {
+  cursor: pointer;
+  font-size: 1.25rem;
+  color: var(--contrast-color);
+  transition: transform 0.2s ease;
+}
+
+.input-group--controls i:hover {
+  transform: scale(1.1);
+}
+
+.workspace-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+  background-color: var(--sec-color);
+  border: 2px solid var(--ter-color);
+  border-radius: 5px;
+  margin-bottom: 0.5rem;
+}
+
+.workspace-form-controls {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.workspace-form-controls button {
+  padding: 0.5rem 1rem;
+  font-size: 0.85rem;
+}
+
 button {
   padding: 0.5rem 1rem;
   border: none;
@@ -176,13 +316,18 @@ button[type='submit'] {
   color: var(--main-color);
 }
 
-button[type='submit']:hover {
+button[type='submit']:hover:not(:disabled) {
   background-color: #1e6ed9;
   box-shadow: 0 4px 12px rgba(43, 130, 240, 0.3);
 }
 
-button[type='submit']:active {
+button[type='submit']:active:not(:disabled) {
   transform: scale(0.98);
+}
+
+button[type='submit']:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 button[type='button'] {
