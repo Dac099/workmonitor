@@ -1,5 +1,5 @@
 export type Board = {
-  id: number
+  id: string
   workspaceId: string
   workspaceName: string
   name: string

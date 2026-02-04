@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { type Board } from '../types/board'
+import { useRouter } from 'vue-router'
 
 interface Props {
   boards: Board[]
 }
 
 const props = defineProps<Props>()
+const router = useRouter()
 
 const groupedBoards = computed(() => {
   const grouped = new Map<string, Board[]>()
@@ -19,6 +21,10 @@ const groupedBoards = computed(() => {
   })
   return Array.from(grouped.entries()).sort((a, b) => a[0].localeCompare(b[0]))
 })
+
+const goToBoard = (boardId: string) => {
+  router.push(`projects/boards/${boardId}`)
+}
 </script>
 
 <template>
@@ -30,7 +36,12 @@ const groupedBoards = computed(() => {
     >
       <h2 class="workspace-title">{{ workspaceName }}</h2>
       <div class="boards-list">
-        <article class="board-card" v-for="board in workspaceBoards" :key="board.id">
+        <article
+          class="board-card"
+          v-for="board in workspaceBoards"
+          :key="board.id"
+          @click="goToBoard(board.id)"
+        >
           <div class="board-icon">
             <i class="nf nf-md-bulletin_board"></i>
           </div>

@@ -1,7 +1,9 @@
 export type Group = {
+  id: string
   name: string
-  id: number
   color: string
+  position: number
+  boardId: string
 }
 
 export type NewGroup = {

@@ -4,37 +4,27 @@ import type { Column, NewColumn } from '@/shared/types/columns'
 
 export const useColumnsStore = defineStore('columns', () => {
   const columns = ref<Column[]>([])
-  const nextId = ref(1)
-
-  // Default width for new columns
   const DEFAULT_WIDTH = 200
 
-  /**
-   * Add a new column to the board
-   */
   const addColumn = (newColumn: NewColumn): Column => {
     const column: Column = {
-      id: nextId.value++,
-      name: newColumn.name,
-      type: newColumn.type,
-      settings: newColumn.settings || '',
-      width: newColumn.width || DEFAULT_WIDTH,
-      position: columns.value.length,
+      ...newColumn,
+      columnWidth: DEFAULT_WIDTH,
     }
 
     columns.value.push(column)
     return column
   }
 
-  /**
-   * Update an existing column
-   */
   const updateColumn = (
-    columnId: number,
+    columnId: string,
     updates: {
       name?: string
       position?: number
-      width?: number
+      columnWidth?: number
+      settings?: string | null
+      type?: Column['type']
+      boardId?: string
     },
   ): Column | null => {
     const column = columns.value.find((c) => c.id === columnId)
@@ -44,24 +34,33 @@ export const useColumnsStore = defineStore('columns', () => {
       return null
     }
 
-    // Update allowed properties
     if (updates.name !== undefined) {
       column.name = updates.name
     }
-    if (updates.width !== undefined) {
-      column.width = updates.width
+
+    if (updates.columnWidth !== undefined) {
+      column.columnWidth = updates.columnWidth
     }
+
+    if (updates.settings !== undefined) {
+      column.settings = updates.settings
+    }
+
+    if (updates.type !== undefined) {
+      column.type = updates.type
+    }
+
+    if (updates.boardId !== undefined) {
+      column.boardId = updates.boardId
+    }
+
     if (updates.position !== undefined) {
-      // Reorder columns if position changed
       const oldPosition = column.position
       const newPosition = updates.position
 
       if (oldPosition !== newPosition) {
-        // Remove column from old position
         columns.value.splice(oldPosition, 1)
-        // Insert at new position
         columns.value.splice(newPosition, 0, column)
-        // Update all positions
         reorderPositions()
       }
     }
@@ -69,10 +68,7 @@ export const useColumnsStore = defineStore('columns', () => {
     return column
   }
 
-  /**
-   * Edit column settings
-   */
-  const editColumnSettings = (columnId: number, settings: string): Column | null => {
+  const editColumnSettings = (columnId: string, settings: string | null): Column | null => {
     const column = columns.value.find((c) => c.id === columnId)
 
     if (!column) {
@@ -84,10 +80,7 @@ export const useColumnsStore = defineStore('columns', () => {
     return column
   }
 
-  /**
-   * Delete a column
-   */
-  const deleteColumn = (columnId: number): boolean => {
+  const deleteColumn = (columnId: string): boolean => {
     const index = columns.value.findIndex((c) => c.id === columnId)
 
     if (index === -1) {
@@ -100,33 +93,21 @@ export const useColumnsStore = defineStore('columns', () => {
     return true
   }
 
-  /**
-   * Reorder all column positions to be sequential
-   */
   const reorderPositions = () => {
     columns.value.forEach((column, index) => {
       column.position = index
     })
   }
 
-  /**
-   * Get a column by ID
-   */
-  const getColumnById = (columnId: number): Column | undefined => {
+  const getColumnById = (columnId: string): Column | undefined => {
     return columns.value.find((c) => c.id === columnId)
   }
 
-  /**
-   * Get all columns sorted by position
-   */
   const getColumnsSorted = (): Column[] => {
     return [...columns.value].sort((a, b) => a.position - b.position)
   }
 
-  /**
-   * Move a column to a new position
-   */
-  const moveColumn = (columnId: number, newPosition: number): boolean => {
+  const moveColumn = (columnId: string, newPosition: number): boolean => {
     const column = columns.value.find((c) => c.id === columnId)
 
     if (!column) {
@@ -151,40 +132,19 @@ export const useColumnsStore = defineStore('columns', () => {
     return true
   }
 
-  /**
-   * Clear all columns
-   */
-  const clearColumns = () => {
-    columns.value = []
-    nextId.value = 1
-  }
-
-  /**
-   * Initialize with default columns
-   */
-  const initializeDefaultColumns = () => {
-    clearColumns()
-
-    addColumn({ name: 'Nombre', type: 'text' })
-    addColumn({ name: 'Estado', type: 'status' })
-    addColumn({ name: 'Fecha', type: 'date' })
+  const setColumns = (newColumns: Column[]) => {
+    columns.value = [...newColumns]
   }
 
   return {
-    // State
     columns,
-
-    // Getters
     getColumnById,
     getColumnsSorted,
-
-    // Actions
     addColumn,
     updateColumn,
     editColumnSettings,
     deleteColumn,
     moveColumn,
-    clearColumns,
-    initializeDefaultColumns,
+    setColumns,
   }
 })
