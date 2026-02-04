@@ -3,4 +3,5 @@ export type Value = {
   itemId: string
   columnId: string
   value: string
+  columnType: string
 }

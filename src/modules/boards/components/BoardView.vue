@@ -1,11 +1,13 @@
 <script lang="ts" setup>
 import { ref, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import type { Group } from '../types/groups'
+import type { Group, GroupDetail } from '../types/groups'
 import { API_BASE_URL } from '@/utils/contants'
 import type { Board } from '../types/board'
 import { useColumnsStore } from '@/stores/columns'
 import BoardSidebar from './BoardSidebar.vue'
+import LoaderComponent from '@/core/components/LoaderComponent.vue'
+import ErrorComponent from '@/core/components/ErrorComponent.vue'
 
 const route = useRoute()
 const boardData = ref<Board | null>(null)
@@ -15,6 +17,7 @@ const isError = ref('')
 const columnsStore = useColumnsStore()
 const showSidebar = ref(window.innerWidth > 768)
 const selectedGroupId = ref<string | null>(null)
+const groupToRender = ref<GroupDetail | null>(null)
 
 onMounted(() => {
   fetchInitialData()
@@ -45,6 +48,15 @@ async function fetchInitialData() {
 
   if (!selectedGroupId.value && parsedGroups.length > 0) {
     selectedGroupId.value = parsedGroups[0].id
+    const groupResponse = await fetch(`${API_BASE_URL}/groups/${selectedGroupId.value}`)
+
+    if (!groupResponse.ok) {
+      isLoading.value = false
+      isError.value = 'Ocurrió un errror al obtener los datos del grupo'
+      return
+    }
+
+    groupToRender.value = await groupResponse.json()
   }
 
   isLoading.value = false
@@ -52,6 +64,12 @@ async function fetchInitialData() {
 
 const toggleSidebar = () => {
   showSidebar.value = !showSidebar.value
+}
+
+const handleErrorAction = () => {
+  isError.value = ''
+  isLoading.value = true
+  fetchInitialData()
 }
 
 const handleSelectGroup = (groupId: string) => {
@@ -78,7 +96,23 @@ watch(
 </script>
 
 <template>
-  <article class="main-container">
+  <article class="main-container" v-if="isLoading">
+    <section class="loader-container" v-if="isLoading">
+      <LoaderComponent />
+    </section>
+  </article>
+
+  <article class="main-container" v-if="isError">
+    <section class="error-container">
+      <ErrorComponent
+        :title="isError"
+        details="Presione el botón para reintentar. Si el error persiste contacte a sistemas"
+        :action="handleErrorAction"
+      />
+    </section>
+  </article>
+
+  <article class="main-container" v-if="!isLoading">
     <Transition name="sidebar-slide">
       <BoardSidebar
         v-if="showSidebar"
@@ -92,7 +126,7 @@ watch(
     <button v-if="!showSidebar" class="sidebar-toggle" type="button" @click="toggleSidebar">
       <i class="nf nf-cod-layout_sidebar_left"></i>
     </button>
-    <section class="main--container--content"></section>
+    <section class="main-container--content"></section>
   </article>
 </template>
 
@@ -100,11 +134,25 @@ watch(
 .main-container {
   height: 100%;
   display: flex;
-  gap: 1rem;
+  gap: 5px;
   position: relative;
 }
 
+.loader-container {
+  height: 100%;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
 .main-container--content {
+  height: 100%;
+  flex: 1;
+  overflow: auto;
+  border: 1px solid var(--ter-color);
+  border-radius: 5px;
+  transition: all 0.2s ease;
 }
 
 .sidebar-toggle {
@@ -138,6 +186,14 @@ watch(
 .sidebar-slide-leave-to {
   transform: translateX(-10px);
   opacity: 0;
+}
+
+.error-container {
+  height: 100%;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 @media (max-width: 768px) {
