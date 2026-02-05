@@ -59,9 +59,8 @@ export const useColumnsStore = defineStore('columns', () => {
       const newPosition = updates.position
 
       if (oldPosition !== newPosition) {
-        columns.value.splice(oldPosition, 1)
-        columns.value.splice(newPosition, 0, column)
-        reorderPositions()
+        reorderPositions(columnId, oldPosition, newPosition)
+        column.position = newPosition
       }
     }
 
@@ -89,12 +88,31 @@ export const useColumnsStore = defineStore('columns', () => {
     }
 
     columns.value.splice(index, 1)
-    reorderPositions()
+    reorderAllPositions()
     return true
   }
 
-  const reorderPositions = () => {
-    columns.value.forEach((column, index) => {
+  const reorderPositions = (movedColumnId: string, oldPosition: number, newPosition: number) => {
+    const otherColumns = columns.value.filter((c) => c.id !== movedColumnId)
+
+    if (newPosition < oldPosition) {
+      otherColumns.forEach((col) => {
+        if (col.position >= newPosition && col.position < oldPosition) {
+          col.position++
+        }
+      })
+    } else if (newPosition > oldPosition) {
+      otherColumns.forEach((col) => {
+        if (col.position > oldPosition && col.position <= newPosition) {
+          col.position--
+        }
+      })
+    }
+  }
+
+  const reorderAllPositions = () => {
+    const sorted = [...columns.value].sort((a, b) => a.position - b.position)
+    sorted.forEach((column, index) => {
       column.position = index
     })
   }
@@ -122,12 +140,14 @@ export const useColumnsStore = defineStore('columns', () => {
 
     const oldPosition = column.position
 
-    // Remove from old position
-    columns.value.splice(oldPosition, 1)
-    // Insert at new position
-    columns.value.splice(newPosition, 0, column)
-    // Update all positions
-    reorderPositions()
+    if (oldPosition === newPosition) {
+      return false
+    }
+
+    // Reordenar las demás columnas
+    reorderPositions(columnId, oldPosition, newPosition)
+    // Actualizar la posición de la columna movida
+    column.position = newPosition
 
     return true
   }

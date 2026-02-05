@@ -17,6 +17,14 @@ export const useColumnOperations = ({ column }: Props) => {
   const positionReference = ref(column.columnWidth)
   const columnWidth = ref(column.columnWidth > 30 ? `${column.columnWidth}px` : '200px')
   const contentRef = ref<HTMLElement | null>(null)
+  const isMenuOpen = ref(false)
+  type MoveDirection = 'left' | 'right' | 'end' | 'beginning'
+
+  // Edit sidebar state
+  const isSidebarOpen = ref(false)
+  const editName = ref(column.name)
+  const isSubmitting = ref(false)
+  const errorMessage = ref('')
 
   const getScrollContainer = (): HTMLElement | null => {
     let element = headerRef.value?.parentElement
@@ -102,6 +110,131 @@ export const useColumnOperations = ({ column }: Props) => {
     })
   }
 
+  const openEditSidebar = () => {
+    editName.value = column.name
+    errorMessage.value = ''
+    isSidebarOpen.value = true
+  }
+
+  const closeSidebar = () => {
+    isSidebarOpen.value = false
+    errorMessage.value = ''
+  }
+
+  const updateColumnName = async (): Promise<Column | null> => {
+    if (!editName.value.trim()) {
+      errorMessage.value = 'El nombre no puede estar vacío'
+      return null
+    }
+
+    isSubmitting.value = true
+    errorMessage.value = ''
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/columns/${column.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name: editName.value.trim() }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Error al actualizar la columna')
+      }
+
+      const updatedColumn = await response.json()
+      columnStore.updateColumn(column.id, { name: editName.value.trim() })
+      closeSidebar()
+      return updatedColumn
+    } catch (error) {
+      errorMessage.value = error instanceof Error ? error.message : 'Error desconocido'
+      return null
+    } finally {
+      isSubmitting.value = false
+    }
+  }
+
+  const deleteColumn = async (): Promise<boolean> => {
+    isMenuOpen.value = false
+    const confirmed = window.confirm(
+      `¿Está seguro que desea eliminar la columna "${column.name}"? Esta acción no se puede deshacer.`,
+    )
+
+    if (!confirmed) {
+      return false
+    }
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/columns/${column.id}`, {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) {
+        throw new Error('Error al eliminar la columna')
+      }
+
+      columnStore.deleteColumn(column.id)
+      return true
+    } catch (error) {
+      console.error('Error deleting column:', error)
+      alert(error instanceof Error ? error.message : 'Error al eliminar la columna')
+      return false
+    }
+  }
+
+  const moveColumn = async (direction: MoveDirection): Promise<boolean> => {
+    isMenuOpen.value = false
+    const columns = columnStore.getColumnsSorted()
+    const currentPosition = column.position
+    const lastPosition = columns.length - 1
+    let newPosition: number
+
+    switch (direction) {
+      case 'left':
+        if (currentPosition === 0) return false
+        newPosition = currentPosition - 1
+        break
+      case 'right':
+        if (currentPosition === lastPosition) return false
+        newPosition = currentPosition + 1
+        break
+      case 'beginning':
+        if (currentPosition === 0) return false
+        newPosition = 0
+        break
+      case 'end':
+        if (currentPosition === lastPosition) return false
+        newPosition = lastPosition
+        break
+    }
+
+    if (newPosition === currentPosition) {
+      return false
+    }
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/columns/${column.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ position: newPosition }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Error al mover la columna')
+      }
+
+      columnStore.moveColumn(column.id, newPosition)
+      return true
+    } catch (error) {
+      console.error('Error moving column:', error)
+      alert(error instanceof Error ? error.message : 'Error al mover la columna')
+      return false
+    }
+  }
+
   onUnmounted(() => {
     stopAutoScroll()
   })
@@ -111,5 +244,15 @@ export const useColumnOperations = ({ column }: Props) => {
     columnWidth,
     startColumnResizer,
     stopColumnResizer,
+    isSidebarOpen,
+    editName,
+    isSubmitting,
+    errorMessage,
+    openEditSidebar,
+    closeSidebar,
+    updateColumnName,
+    deleteColumn,
+    moveColumn,
+    isMenuOpen,
   }
 }

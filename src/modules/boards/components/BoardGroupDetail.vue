@@ -64,7 +64,6 @@ watch(
 <style scoped>
 .column-item--name {
   min-width: 200px;
-  width: 200px;
   text-align: left;
   border: 1px solid var(--ter-color);
   padding: 3px 6px;
