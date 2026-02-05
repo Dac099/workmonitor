@@ -15,6 +15,8 @@ export const useBoardView = () => {
   const showSidebar = ref(window.innerWidth > 768)
   const selectedGroupId = ref<string | null>(null)
   const groupToRender = ref<GroupDetail | null>(null)
+  const isGroupLoading = ref(false)
+  const groupError = ref('')
 
   const fetchInitialData = async () => {
     const [columnsResponse, groupsResponse, boardResponse] = await Promise.all([
@@ -41,15 +43,6 @@ export const useBoardView = () => {
 
     if (!selectedGroupId.value && parsedGroups.length > 0) {
       selectedGroupId.value = parsedGroups[0].id
-      const groupResponse = await fetch(`${API_BASE_URL}/groups/${selectedGroupId.value}`)
-
-      if (!groupResponse.ok) {
-        isLoading.value = false
-        isError.value = 'Ocurrió un errror al obtener los datos del grupo'
-        return
-      }
-
-      groupToRender.value = await groupResponse.json()
     }
 
     isLoading.value = false
@@ -67,6 +60,38 @@ export const useBoardView = () => {
 
   const handleSelectGroup = (groupId: string) => {
     selectedGroupId.value = groupId
+  }
+
+  const fetchGroupDetail = async (groupId: string) => {
+    if (!groupId) {
+      groupToRender.value = null
+      return
+    }
+
+    isGroupLoading.value = true
+    groupError.value = ''
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/groups/${groupId}`)
+
+      if (!response.ok) {
+        groupError.value = 'Ocurrió un error al obtener los datos del grupo'
+        groupToRender.value = null
+        return
+      }
+
+      groupToRender.value = await response.json()
+    } catch {
+      groupError.value = 'Ocurrió un error al obtener los datos del grupo'
+      groupToRender.value = null
+    } finally {
+      isGroupLoading.value = false
+    }
+  }
+
+  const handleGroupErrorAction = () => {
+    if (!selectedGroupId.value) return
+    fetchGroupDetail(selectedGroupId.value)
   }
 
   const handleGroupsChange = (groups: Group[]) => {
@@ -91,16 +116,33 @@ export const useBoardView = () => {
     { immediate: true },
   )
 
+  watch(
+    () => selectedGroupId.value,
+    (groupId) => {
+      if (!groupId) {
+        groupToRender.value = null
+        groupError.value = ''
+        return
+      }
+
+      fetchGroupDetail(groupId)
+    },
+    { immediate: true },
+  )
+
   return {
     boardData,
     groupsList,
     isLoading,
     isError,
+    isGroupLoading,
+    groupError,
     showSidebar,
     selectedGroupId,
     groupToRender,
     toggleSidebar,
     handleErrorAction,
+    handleGroupErrorAction,
     handleSelectGroup,
     handleGroupsChange,
   }

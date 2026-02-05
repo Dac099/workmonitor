@@ -3,15 +3,20 @@ import BoardSidebar from './BoardSidebar.vue'
 import LoaderComponent from '@/core/components/LoaderComponent.vue'
 import ErrorComponent from '@/core/components/ErrorComponent.vue'
 import { useBoardView } from '../composables/useBoardView'
+import BoardGroupDetail from './BoardGroupDetail.vue'
 
 const {
   groupsList,
   isLoading,
   isError,
+  isGroupLoading,
+  groupError,
   showSidebar,
   selectedGroupId,
+  groupToRender,
   toggleSidebar,
   handleErrorAction,
+  handleGroupErrorAction,
   handleSelectGroup,
   handleGroupsChange,
 } = useBoardView()
@@ -48,7 +53,20 @@ const {
     <button v-if="!showSidebar" class="sidebar-toggle" type="button" @click="toggleSidebar">
       <i class="nf nf-cod-layout_sidebar_left"></i>
     </button>
-    <section class="main-container--content"></section>
+    <section class="main-container--content">
+      <section v-if="isGroupLoading" class="loader-container">
+        <LoaderComponent />
+      </section>
+      <section v-else-if="groupError" class="error-container">
+        <ErrorComponent
+          :title="groupError"
+          details="Presione el botón para reintentar."
+          :action="handleGroupErrorAction"
+        />
+      </section>
+      <BoardGroupDetail v-else-if="groupToRender" :group="groupToRender" />
+      <div v-else class="content-empty">Selecciona un grupo</div>
+    </section>
   </article>
 </template>
 
@@ -70,11 +88,38 @@ const {
 
 .main-container--content {
   height: 100%;
+  min-height: 0;
   flex: 1;
   overflow: auto;
   border: 1px solid var(--ter-color);
   border-radius: 5px;
   transition: all 0.2s ease;
+  padding: 5px;
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+.main-container--content:hover {
+  scrollbar-color: var(--dark-color) transparent;
+}
+
+.main-container--content::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.main-container--content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.main-container--content::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 3px;
+  transition: background 0.2s ease;
+}
+
+.main-container--content:hover::-webkit-scrollbar-thumb {
+  background: var(--dark-color);
 }
 
 .sidebar-toggle {
@@ -116,6 +161,15 @@ const {
   display: flex;
   justify-content: center;
   align-items: center;
+}
+
+.content-empty {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #9aa0a6;
+  font-size: 0.9rem;
 }
 
 @media (max-width: 768px) {
