@@ -5,6 +5,7 @@ import BoardGroupsList from './BoardGroupsList.vue'
 interface Props {
   groups: Group[]
   selectedGroupId: string | null
+  boardName: string
 }
 
 const props = defineProps<Props>()
@@ -20,7 +21,7 @@ const emit = defineEmits<{
   <article>
     <aside class="main-container--sidebar">
       <section class="sidebar-header">
-        <h4>Grupos</h4>
+        <h4 :title="props.boardName">{{ props.boardName }}</h4>
         <div>
           <button type="button">+</button>
           <button type="button" @click="emit('close')">
@@ -60,6 +61,9 @@ const emit = defineEmits<{
 
   h4 {
     color: var(--contrast-color);
+    text-wrap: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   button {

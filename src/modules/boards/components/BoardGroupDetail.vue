@@ -45,21 +45,19 @@ watch(
       </section>
     </section>
 
-    <section class="body-container">
-      <table class="table-data">
-        <thead>
-          <tr>
-            <th class="column-item--name">Item</th>
-            <ColumnComponent
-              v-for="column in columnsStore.getColumnsSorted()"
-              :key="column.id"
-              :column="column"
-            />
-            <th class="control-component"></th>
-          </tr>
-        </thead>
-      </table>
-    </section>
+    <table class="table-data">
+      <thead>
+        <tr>
+          <th class="column-item--name">Item</th>
+          <ColumnComponent
+            v-for="column in columnsStore.getColumnsSorted()"
+            :key="column.id"
+            :column="column"
+          />
+          <th class="control-component"></th>
+        </tr>
+      </thead>
+    </table>
   </article>
 </template>
 
@@ -71,6 +69,8 @@ watch(
   border: 1px solid var(--ter-color);
   padding: 3px 6px;
   font-weight: 400;
+  resize: horizontal;
+  overflow: hidden;
 }
 
 .control-component {
@@ -124,5 +124,8 @@ watch(
 
 .table-data {
   border-collapse: collapse;
+  table-layout: fixed;
+  width: max-content;
+  min-width: 100%;
 }
 </style>

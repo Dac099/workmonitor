@@ -1,122 +1,26 @@
 <script lang="ts" setup>
 import { onMounted, onUnmounted, ref } from 'vue'
 import type { Column } from '@/shared/types/columns'
-import { useColumnsStore } from '@/stores/columns'
-import { API_BASE_URL } from '@/utils/contants'
+import { useColumnOperations } from '../../composables/useColumnOperations'
 
 const props = defineProps<{
   column: Column
 }>()
 
 const isMenuOpen = ref(false)
-const headerRef = ref<HTMLElement | null>(null)
-const contentRef = ref<HTMLElement | null>(null)
-const initialCursorPos = ref(0)
-const positionReference = ref(props.column.columnWidth)
-const columnWidth = ref(props.column.columnWidth > 30 ? `${props.column.columnWidth}px` : '200px')
-const EDGE_THRESHOLD = 50
-const SCROLL_SPEED = 10
-let scrollInterval: number | null = null
-const columnStore = useColumnsStore()
+const { headerRef, columnWidth, startColumnResizer, stopColumnResizer } = useColumnOperations({
+  column: props.column,
+})
 
 const toggleMenu = () => {
   isMenuOpen.value = !isMenuOpen.value
 }
 
-const closeMenu = () => {
-  isMenuOpen.value = false
-}
-
 const handleClickOutside = (event: MouseEvent) => {
   if (!headerRef.value) return
   if (!headerRef.value.contains(event.target as Node)) {
-    closeMenu()
+    isMenuOpen.value = false
   }
-}
-
-const getScrollContainer = (): HTMLElement | null => {
-  let element = headerRef.value?.parentElement
-  while (element) {
-    const overflow = getComputedStyle(element).overflowX
-    if (overflow === 'auto' || overflow === 'scroll') {
-      return element
-    }
-    element = element.parentElement
-  }
-  return document.documentElement
-}
-
-const handleAutoScroll = (clientX: number) => {
-  const viewportWidth = window.innerWidth
-  const scrollContainer = getScrollContainer()
-
-  if (!scrollContainer) return
-
-  if (scrollInterval) {
-    clearInterval(scrollInterval)
-    scrollInterval = null
-  }
-
-  if (clientX > viewportWidth - EDGE_THRESHOLD) {
-    scrollInterval = window.setInterval(() => {
-      scrollContainer.scrollLeft += SCROLL_SPEED
-    }, 16)
-  } else if (clientX < EDGE_THRESHOLD) {
-    scrollInterval = window.setInterval(() => {
-      scrollContainer.scrollLeft -= SCROLL_SPEED
-    }, 16)
-  }
-}
-
-const stopAutoScroll = () => {
-  if (scrollInterval) {
-    clearInterval(scrollInterval)
-    scrollInterval = null
-  }
-}
-
-const startColumnResizer = (event: MouseEvent) => {
-  initialCursorPos.value = event.clientX
-  document.addEventListener('mousemove', handleCursorPosition)
-  document.addEventListener('mouseup', stopColumnResizer)
-}
-
-const handleCursorPosition = (event: MouseEvent) => {
-  const { clientX } = event
-  const dragDistance = clientX - initialCursorPos.value
-  const computedWidth = positionReference.value + dragDistance
-  const minimalWidth = contentRef.value ? contentRef.value.clientWidth : 100
-
-  if (computedWidth < minimalWidth) {
-    columnWidth.value = `${minimalWidth}px`
-  } else {
-    columnWidth.value = `${computedWidth}px`
-  }
-
-  handleAutoScroll(clientX)
-}
-
-//Use this method to stop events listening and update store and make API call
-const stopColumnResizer = () => {
-  const widthValue = columnWidth.value ? parseInt(columnWidth.value) : 200
-  positionReference.value = widthValue
-  document.removeEventListener('mousemove', handleCursorPosition)
-  document.removeEventListener('mouseup', stopColumnResizer)
-  updateColumnWidth(widthValue)
-  stopAutoScroll()
-}
-
-const updateColumnWidth = (width: number) => {
-  columnStore.updateColumn(props.column.id, { columnWidth: width })
-  fetch(`${API_BASE_URL}/columns/${props.column.id}`, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ columnWidth: width }),
-  }).catch((error) => {
-    console.error('Error updating column width:', error)
-  })
 }
 
 onMounted(() => {
@@ -125,7 +29,6 @@ onMounted(() => {
 
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
-  stopAutoScroll()
 })
 </script>
 
@@ -143,8 +46,8 @@ onUnmounted(() => {
       ></span>
     </section>
     <div v-if="isMenuOpen" class="column-menu">
-      <button type="button" @click="closeMenu">Editar</button>
-      <button type="button" @click="closeMenu">Eliminar</button>
+      <button type="button">Editar</button>
+      <button type="button">Eliminar</button>
     </div>
   </th>
 </template>

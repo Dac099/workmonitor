@@ -14,6 +14,7 @@ const {
   showSidebar,
   selectedGroupId,
   groupToRender,
+  boardData,
   toggleSidebar,
   handleErrorAction,
   handleGroupErrorAction,
@@ -40,11 +41,13 @@ const {
   </article>
 
   <article class="main-container" v-if="!isLoading">
+    <!-- Sidebar section -->
     <Transition name="sidebar-slide">
       <BoardSidebar
         v-if="showSidebar"
         :groups="groupsList"
         :selected-group-id="selectedGroupId"
+        :board-name="boardData!.name"
         @close="toggleSidebar"
         @select="handleSelectGroup"
         @groups-change="handleGroupsChange"
@@ -53,6 +56,8 @@ const {
     <button v-if="!showSidebar" class="sidebar-toggle" type="button" @click="toggleSidebar">
       <i class="nf nf-cod-layout_sidebar_left"></i>
     </button>
+
+    <!-- Section where the group detail renders -->
     <section class="main-container--content">
       <section v-if="isGroupLoading" class="loader-container">
         <LoaderComponent />
