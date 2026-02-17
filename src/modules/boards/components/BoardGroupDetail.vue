@@ -9,6 +9,8 @@ import DateValueCell from './field-cells/DateValueCell.vue'
 import StatusValueCell from './field-cells/StatusValueCell.vue'
 import TimelineValueCell from './field-cells/TimelineValueCell.vue'
 import ColumnComponent from './field-cells/ColumnComponent.vue'
+import ItemNameCell from './field-cells/ItemNameCell.vue'
+import type { ItemDetail } from '../types/items'
 
 interface Props {
   group: GroupDetail
@@ -29,6 +31,10 @@ watch(
   },
   { immediate: true },
 )
+
+const getValueForColumn = (item: ItemDetail, columnId: string): Value | undefined => {
+  return item.values.find((value) => value.columnId === columnId)
+}
 </script>
 
 <template>
@@ -57,6 +63,38 @@ watch(
           <th class="control-component"></th>
         </tr>
       </thead>
+      <tbody>
+        <tr v-for="item in localItems" :key="item.id">
+          <td>
+            <ItemNameCell :item="item" />
+          </td>
+          <td v-for="column in columnsStore.getColumnsSorted()" :key="column.id">
+            <template v-if="getValueForColumn(item, column.id)">
+              <TextValueCell
+                v-if="column.type === 'text'"
+                :value="getValueForColumn(item, column.id)!"
+              />
+              <NumberValueCell
+                v-else-if="column.type === 'number'"
+                :value="getValueForColumn(item, column.id)!"
+              />
+              <DateValueCell
+                v-else-if="column.type === 'date'"
+                :value="getValueForColumn(item, column.id)!.value"
+              />
+              <StatusValueCell
+                v-else-if="column.type === 'status'"
+                :value="getValueForColumn(item, column.id)!"
+              />
+              <TimelineValueCell
+                v-else-if="column.type === 'timeline'"
+                :value="getValueForColumn(item, column.id)!"
+              />
+            </template>
+            <span v-else class="empty-value"> - </span>
+          </td>
+        </tr>
+      </tbody>
     </table>
   </article>
 </template>
@@ -68,8 +106,22 @@ watch(
   border: 1px solid var(--ter-color);
   padding: 3px 6px;
   font-weight: 400;
-  resize: horizontal;
-  overflow: hidden;
+}
+
+.empty-value {
+  background-color: rgba(0, 0, 0, 0.05);
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.table-data td {
+  border: 1px solid var(--ter-color);
+  cursor: pointer;
+  height: 38px;
 }
 
 .control-component {
@@ -123,7 +175,7 @@ watch(
 
 .table-data {
   border-collapse: collapse;
-  table-layout: fixed;
+  table-layout: auto;
   width: max-content;
   min-width: 100%;
 }

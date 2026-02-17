@@ -1,13 +1,17 @@
 <script lang="ts" setup>
+import { computed } from 'vue'
+import type { Value } from '../../types/values'
+
 interface Props {
-  value: string
+  value: Value
 }
 
 const props = defineProps<Props>()
+const formatedValue = computed(() => JSON.parse(props.value.value))
 </script>
 
 <template>
-  <span class="cell-text">{{ props.value }}</span>
+  <span class="cell-text">{{ formatedValue }}</span>
 </template>
 
 <style scoped>
@@ -16,5 +20,6 @@ const props = defineProps<Props>()
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  text-align: center;
 }
 </style>

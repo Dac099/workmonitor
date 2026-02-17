@@ -96,7 +96,6 @@ const {
   min-height: 0;
   flex: 1;
   overflow: auto;
-  border: 1px solid var(--ter-color);
   border-radius: 5px;
   transition: all 0.2s ease;
   padding: 5px;
