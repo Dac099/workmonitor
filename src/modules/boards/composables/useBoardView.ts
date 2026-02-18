@@ -4,6 +4,7 @@ import type { Group, GroupDetail } from '../types/groups'
 import type { Board } from '../types/board'
 import { API_BASE_URL } from '@/utils/contants'
 import { useColumnsStore } from '@/stores/columns'
+import { useTableValuesStore } from '@/stores/tableValues'
 
 export const useBoardView = () => {
   const route = useRoute()
@@ -12,6 +13,7 @@ export const useBoardView = () => {
   const isLoading = ref(true)
   const isError = ref('')
   const columnsStore = useColumnsStore()
+  const tableValuesStore = useTableValuesStore()
   const showSidebar = ref(window.innerWidth > 768)
   const selectedGroupId = ref<string | null>(null)
   const groupToRender = ref<GroupDetail | null>(null)
@@ -19,27 +21,32 @@ export const useBoardView = () => {
   const groupError = ref('')
 
   const fetchInitialData = async () => {
-    const [columnsResponse, groupsResponse, boardResponse] = await Promise.all([
-      fetch(`${API_BASE_URL}/columns/board/${route.params.boardId}`),
-      fetch(`${API_BASE_URL}/groups/board/${route.params.boardId}`),
-      fetch(`${API_BASE_URL}/boards/${route.params.boardId}`),
-    ])
+    const [columnsResponse, groupsResponse, boardResponse, tableValuesResponse] = await Promise.all(
+      [
+        fetch(`${API_BASE_URL}/columns/board/${route.params.boardId}`),
+        fetch(`${API_BASE_URL}/groups/board/${route.params.boardId}`),
+        fetch(`${API_BASE_URL}/boards/${route.params.boardId}`),
+        fetch(`${API_BASE_URL}/tableValues/status/board/${route.params.boardId}`),
+      ],
+    )
 
-    if (!columnsResponse.ok || !groupsResponse.ok || !boardResponse.ok) {
+    if (!columnsResponse.ok || !groupsResponse.ok || !boardResponse.ok || !tableValuesResponse.ok) {
       isLoading.value = false
       isError.value = 'Ocurrió un errror al obtener los datos.'
       return
     }
 
-    const [parsedColumns, parsedGroups, parsedBoard] = await Promise.all([
+    const [parsedColumns, parsedGroups, parsedBoard, parsedTableValues] = await Promise.all([
       columnsResponse.json(),
       groupsResponse.json(),
       boardResponse.json(),
+      tableValuesResponse.json(),
     ])
 
     boardData.value = parsedBoard
     groupsList.value = parsedGroups
     columnsStore.setColumns(parsedColumns)
+    tableValuesStore.setTableValues(parsedTableValues)
 
     if (!selectedGroupId.value && parsedGroups.length > 0) {
       selectedGroupId.value = parsedGroups[0].id
