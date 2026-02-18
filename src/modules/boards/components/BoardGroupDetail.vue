@@ -81,6 +81,8 @@ const getValueForColumn = (item: ItemDetail, columnId: string): Value | undefine
             <NumberValueCell
               v-else-if="column.type === 'number'"
               :value="getValueForColumn(item, column.id)"
+              :item-id="item.id"
+              :column-id="column.id"
             >
               <span class="empty-value"> - </span>
             </NumberValueCell>
