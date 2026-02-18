@@ -3,12 +3,14 @@ import { computed } from 'vue'
 import type { Value } from '../../types/values'
 
 interface Props {
-  value: Value
+  value?: Value
 }
 
 const props = defineProps<Props>()
 
-const dateRange = computed<[string, string]>(() => JSON.parse(props.value.value))
+const dateRange = computed<[string, string] | null>(() =>
+  props.value ? JSON.parse(props.value.value) : null,
+)
 
 const formatDate = (dateString: string): string => {
   const date = new Date(dateString)
@@ -19,11 +21,13 @@ const formatDate = (dateString: string): string => {
 }
 
 const formattedDateRange = computed(() => {
+  if (!dateRange.value) return ''
   const [start, end] = dateRange.value
   return `${formatDate(start)} - ${formatDate(end)}`
 })
 
 const progressPercentage = computed(() => {
+  if (!dateRange.value) return 0
   const [start, end] = dateRange.value
   const startDate = new Date(start).getTime()
   const endDate = new Date(end).getTime()
@@ -39,7 +43,8 @@ const progressPercentage = computed(() => {
 </script>
 
 <template>
-  <div class="progress-bar">
+  <slot v-if="!value" />
+  <div v-else class="progress-bar">
     <div class="progress-fill" :style="{ width: `${progressPercentage}%` }"></div>
     <span class="date-text">{{ formattedDateRange }}</span>
   </div>

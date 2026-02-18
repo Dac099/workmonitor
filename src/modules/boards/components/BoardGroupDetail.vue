@@ -69,29 +69,42 @@ const getValueForColumn = (item: ItemDetail, columnId: string): Value | undefine
             <ItemNameCell :item="item" />
           </td>
           <td v-for="column in columnsStore.getColumnsSorted()" :key="column.id">
-            <template v-if="getValueForColumn(item, column.id)">
-              <TextValueCell
-                v-if="column.type === 'text'"
-                :value="getValueForColumn(item, column.id)!"
-              />
-              <NumberValueCell
-                v-else-if="column.type === 'number'"
-                :value="getValueForColumn(item, column.id)!"
-              />
-              <DateValueCell
-                v-else-if="column.type === 'date'"
-                :value="getValueForColumn(item, column.id)!.value"
-              />
-              <StatusValueCell
-                v-else-if="column.type === 'status'"
-                :value="getValueForColumn(item, column.id)!"
-              />
-              <TimelineValueCell
-                v-else-if="column.type === 'timeline'"
-                :value="getValueForColumn(item, column.id)!"
-              />
-            </template>
-            <span v-else class="empty-value"> - </span>
+            <TextValueCell
+              v-if="column.type === 'text'"
+              :value="getValueForColumn(item, column.id)"
+            >
+              <span class="empty-value"> - </span>
+            </TextValueCell>
+
+            <NumberValueCell
+              v-else-if="column.type === 'number'"
+              :value="getValueForColumn(item, column.id)"
+            >
+              <span class="empty-value"> - </span>
+            </NumberValueCell>
+
+            <DateValueCell
+              v-else-if="column.type === 'date'"
+              :value="getValueForColumn(item, column.id)?.value"
+            >
+              <span class="empty-value"> - </span>
+            </DateValueCell>
+
+            <StatusValueCell
+              v-else-if="column.type === 'status'"
+              :value="getValueForColumn(item, column.id)"
+              :item-id="item.id"
+              :column-id="column.id"
+            >
+              <span class="empty-value"> - </span>
+            </StatusValueCell>
+
+            <TimelineValueCell
+              v-else-if="column.type === 'timeline'"
+              :value="getValueForColumn(item, column.id)"
+            >
+              <span class="empty-value"> - </span>
+            </TimelineValueCell>
           </td>
         </tr>
       </tbody>

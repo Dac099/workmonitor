@@ -1,13 +1,14 @@
 <script lang="ts" setup>
 interface Props {
-  value: string
+  value?: string
 }
 
 const props = defineProps<Props>()
 </script>
 
 <template>
-  <span class="cell-text">{{ props.value }}</span>
+  <slot v-if="!value" />
+  <span v-else class="cell-text">{{ props.value }}</span>
 </template>
 
 <style scoped>

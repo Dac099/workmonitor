@@ -10,7 +10,7 @@ import { API_BASE_URL } from '@/utils/contants'
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface Props {
-  value: Value
+  value?: Value
   itemId?: string
   columnId?: string
 }
@@ -28,7 +28,7 @@ const props = defineProps<Props>()
 const tableValuesStore = useTableValuesStore()
 const colorsStore = useColorsStore()
 const overlayMenu = ref<InstanceType<typeof OverlayMenu> | null>(null)
-const localValue = ref<Value>({ ...props.value })
+const localValue = ref<Value | undefined>(props.value ? { ...props.value } : undefined)
 
 // ─── View state ───────────────────────────────────────────────────────────────
 
@@ -45,16 +45,18 @@ const editingTag = ref<TableValue | null>(null)
 
 // ─── Computed ─────────────────────────────────────────────────────────────────
 
-const statusProperties = computed<StatusTag>(() => JSON.parse(localValue.value.value))
+const statusProperties = computed<StatusTag>(() =>
+  localValue.value ? JSON.parse(localValue.value.value) : { color: 'transparent', text: '' },
+)
 
 const columnOptions = computed<TableValue[]>(() => {
-  const col = tableValuesStore.tableValuesByColumn.find(
-    (c) => c.columnId === localValue.value.columnId,
-  )
+  const colId = localValue.value?.columnId ?? props.columnId
+  if (!colId) return []
+  const col = tableValuesStore.tableValuesByColumn.find((c) => c.columnId === colId)
   return col?.values ?? []
 })
 
-const activeColumnId = computed(() => props.columnId ?? localValue.value.columnId)
+const activeColumnId = computed(() => props.columnId ?? localValue.value?.columnId ?? '')
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -74,9 +76,9 @@ const findStoreColumn = (columnId: string) =>
 // ─── Grid actions ─────────────────────────────────────────────────────────────
 
 const selectTag = (tableValue: TableValue) => {
-  localValue.value.value = tableValue.value
+  if (localValue.value) localValue.value.value = tableValue.value
 
-  if (!props.value.id) {
+  if (!props.value?.id) {
     fetch(`${API_BASE_URL}/tableValues/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -224,90 +226,96 @@ const deleteTag = async (option: TableValue) => {
 </script>
 
 <template>
-  <span
-    class="cell-text"
-    :style="{ backgroundColor: statusProperties.color }"
-    @click="overlayMenu?.toggle($event)"
-  >
-    {{ statusProperties.text }}
-  </span>
+  <slot v-if="!value" />
 
-  <OverlayMenu ref="overlayMenu">
-    <template #header>Etiquetas</template>
-    <template #content>
-      <!-- Create / Edit form -->
-      <div v-if="activeView !== 'grid'" class="tag-form">
-        <input
-          v-model="formText"
-          class="tag-form__input"
-          placeholder="Nombre de la etiqueta"
-          @keyup.enter="activeView === 'create' ? createTag() : saveTag()"
-        />
-        <div class="tag-form__colors">
-          <button
-            v-for="color in colorsStore.availableColors"
-            :key="color"
-            class="tag-form__color-btn"
-            :class="{ 'tag-form__color-btn--selected': formColor === color }"
-            :style="{ backgroundColor: color }"
-            @click="formColor = color"
+  <template v-else>
+    <span
+      class="cell-text"
+      :style="{ backgroundColor: statusProperties.color }"
+      @click="overlayMenu?.toggle($event)"
+    >
+      {{ statusProperties.text }}
+    </span>
+
+    <OverlayMenu ref="overlayMenu">
+      <template #header>Etiquetas</template>
+      <template #content>
+        <!-- Create / Edit form -->
+        <div v-if="activeView !== 'grid'" class="tag-form">
+          <input
+            v-model="formText"
+            class="tag-form__input"
+            placeholder="Nombre de la etiqueta"
+            @keyup.enter="activeView === 'create' ? createTag() : saveTag()"
           />
-        </div>
-        <div class="tag-form__actions">
-          <button class="tag-form__btn tag-form__btn--cancel" @click="cancelForm">Cancelar</button>
-          <button
-            class="tag-form__btn tag-form__btn--create"
-            :disabled="!formText.trim() || isSaving"
-            @click="activeView === 'create' ? createTag() : saveTag()"
-          >
-            {{ isSaving ? 'Guardando…' : activeView === 'create' ? 'Crear' : 'Actualizar' }}
-          </button>
-        </div>
-      </div>
-
-      <!-- Tag grid -->
-      <template v-else>
-        <div class="status-grid-header">
-          <button class="add-tag-btn" @click="openCreateForm">+ Agregar etiqueta</button>
-          <button
-            class="add-tag-btn"
-            :class="{ 'edit-tag-btn--active': isEditMode }"
-            @click="toggleEditMode"
-          >
-            {{ isEditMode ? '✓ Listo' : '✎ Editar' }}
-          </button>
-          <button
-            class="add-tag-btn delete-tag-btn"
-            :class="{ 'edit-tag-btn--active': isDeleteMode }"
-            @click="toggleDeleteMode"
-          >
-            {{ isDeleteMode ? '✓ Listo' : '🗑 Eliminar' }}
-          </button>
-        </div>
-        <div class="status-grid">
-          <div
-            v-for="option in columnOptions"
-            :key="option.id"
-            class="status-grid__item"
-            :class="{
-              'status-grid__item--shaking': isEditMode || isDeleteMode,
-              'status-grid__item--delete': isDeleteMode,
-            }"
-            :style="{ backgroundColor: parseTag(option.value).color }"
-            @click="
-              isEditMode
-                ? openEditForm(option)
-                : isDeleteMode
-                  ? deleteTag(option)
-                  : selectTag(option)
-            "
-          >
-            {{ parseTag(option.value).text }}
+          <div class="tag-form__colors">
+            <button
+              v-for="color in colorsStore.availableColors"
+              :key="color"
+              class="tag-form__color-btn"
+              :class="{ 'tag-form__color-btn--selected': formColor === color }"
+              :style="{ backgroundColor: color }"
+              @click="formColor = color"
+            />
+          </div>
+          <div class="tag-form__actions">
+            <button class="tag-form__btn tag-form__btn--cancel" @click="cancelForm">
+              Cancelar
+            </button>
+            <button
+              class="tag-form__btn tag-form__btn--create"
+              :disabled="!formText.trim() || isSaving"
+              @click="activeView === 'create' ? createTag() : saveTag()"
+            >
+              {{ isSaving ? 'Guardando…' : activeView === 'create' ? 'Crear' : 'Actualizar' }}
+            </button>
           </div>
         </div>
+
+        <!-- Tag grid -->
+        <template v-else>
+          <div class="status-grid-header">
+            <button class="add-tag-btn" @click="openCreateForm">+ Agregar etiqueta</button>
+            <button
+              class="add-tag-btn"
+              :class="{ 'edit-tag-btn--active': isEditMode }"
+              @click="toggleEditMode"
+            >
+              {{ isEditMode ? '✓ Listo' : '✎ Editar' }}
+            </button>
+            <button
+              class="add-tag-btn delete-tag-btn"
+              :class="{ 'edit-tag-btn--active': isDeleteMode }"
+              @click="toggleDeleteMode"
+            >
+              {{ isDeleteMode ? '✓ Listo' : '🗑 Eliminar' }}
+            </button>
+          </div>
+          <div class="status-grid">
+            <div
+              v-for="option in columnOptions"
+              :key="option.id"
+              class="status-grid__item"
+              :class="{
+                'status-grid__item--shaking': isEditMode || isDeleteMode,
+                'status-grid__item--delete': isDeleteMode,
+              }"
+              :style="{ backgroundColor: parseTag(option.value).color }"
+              @click="
+                isEditMode
+                  ? openEditForm(option)
+                  : isDeleteMode
+                    ? deleteTag(option)
+                    : selectTag(option)
+              "
+            >
+              {{ parseTag(option.value).text }}
+            </div>
+          </div>
+        </template>
       </template>
-    </template>
-  </OverlayMenu>
+    </OverlayMenu>
+  </template>
 </template>
 
 <style scoped>

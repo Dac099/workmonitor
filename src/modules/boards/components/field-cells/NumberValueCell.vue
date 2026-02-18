@@ -3,15 +3,16 @@ import { computed } from 'vue'
 import type { Value } from '../../types/values'
 
 interface Props {
-  value: Value
+  value?: Value
 }
 
 const props = defineProps<Props>()
-const formatedValue = computed(() => JSON.parse(props.value.value))
+const formatedValue = computed(() => (props.value ? JSON.parse(props.value.value) : null))
 </script>
 
 <template>
-  <span class="cell-text">{{ formatedValue }}</span>
+  <slot v-if="!value" />
+  <span v-else class="cell-text">{{ formatedValue }}</span>
 </template>
 
 <style scoped>
