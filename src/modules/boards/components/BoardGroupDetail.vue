@@ -72,6 +72,8 @@ const getValueForColumn = (item: ItemDetail, columnId: string): Value | undefine
             <TextValueCell
               v-if="column.type === 'text'"
               :value="getValueForColumn(item, column.id)"
+              :item-id="item.id"
+              :column-id="column.id"
             >
               <span class="empty-value"> - </span>
             </TextValueCell>
