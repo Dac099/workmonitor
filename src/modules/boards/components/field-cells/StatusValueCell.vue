@@ -75,28 +75,58 @@ const findStoreColumn = (columnId: string) =>
 
 // ─── Grid actions ─────────────────────────────────────────────────────────────
 
-const selectTag = (tableValue: TableValue) => {
-  if (localValue.value) localValue.value.value = tableValue.value
-
-  if (!props.value?.id) {
-    fetch(`${API_BASE_URL}/tableValues/`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        itemId: props.itemId,
-        columnId: props.columnId,
-        value: tableValue.value,
-      }),
-    })
+const selectTag = async (tableValue: TableValue) => {
+  const newValueStr = tableValue.value
+  // 1. Optimistic Update
+  if (localValue.value) {
+    // Look for existing value to update
+    localValue.value.value = newValueStr
   } else {
-    fetch(`${API_BASE_URL}/tableValues/${props.value.id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ value: tableValue.value }),
-    })
+    // Create temporary local value so UI updates immediately
+    localValue.value = {
+      id: '', // Temporary ID
+      itemId: props.itemId || '',
+      columnId: activeColumnId.value,
+      value: newValueStr,
+      columnType: 'status',
+    }
   }
 
   overlayMenu.value?.close()
+
+  // 2. API Call
+  try {
+    if (props.value?.id) {
+      // Update existing
+      await fetch(`${API_BASE_URL}/tableValues/${props.value.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ value: newValueStr }),
+      })
+    } else {
+      // Create new
+      const response = await fetch(`${API_BASE_URL}/tableValues/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          itemId: props.itemId,
+          columnId: props.columnId,
+          value: newValueStr,
+        }),
+      })
+
+      if (response.ok) {
+        const created: TableValue = await response.json()
+        // Update local ID with real ID from server
+        if (localValue.value) {
+          localValue.value.id = created.id
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Failed to save status:', error)
+    // TODO: Revert optimistic update if needed or show error
+  }
 }
 
 const toggleEditMode = () => {
@@ -226,17 +256,21 @@ const deleteTag = async (option: TableValue) => {
 </script>
 
 <template>
-  <slot v-if="!value" />
+  <div class="cell-container" @click="overlayMenu?.toggle($event)">
+    <!-- Content: either slot (empty) or status text -->
+    <div v-if="!localValue" class="cell-content cell-empty">
+      <slot />
+    </div>
 
-  <template v-else>
     <span
-      class="cell-text"
+      v-else
+      class="cell-content cell-text"
       :style="{ backgroundColor: statusProperties.color }"
-      @click="overlayMenu?.toggle($event)"
     >
       {{ statusProperties.text }}
     </span>
 
+    <!-- OverlayMenu always present, controlled by toggle -->
     <OverlayMenu ref="overlayMenu">
       <template #header>Etiquetas</template>
       <template #content>
@@ -259,13 +293,13 @@ const deleteTag = async (option: TableValue) => {
             />
           </div>
           <div class="tag-form__actions">
-            <button class="tag-form__btn tag-form__btn--cancel" @click="cancelForm">
+            <button class="tag-form__btn tag-form__btn--cancel" @click.stop="cancelForm">
               Cancelar
             </button>
             <button
               class="tag-form__btn tag-form__btn--create"
               :disabled="!formText.trim() || isSaving"
-              @click="activeView === 'create' ? createTag() : saveTag()"
+              @click.stop="activeView === 'create' ? createTag() : saveTag()"
             >
               {{ isSaving ? 'Guardando…' : activeView === 'create' ? 'Crear' : 'Actualizar' }}
             </button>
@@ -275,18 +309,18 @@ const deleteTag = async (option: TableValue) => {
         <!-- Tag grid -->
         <template v-else>
           <div class="status-grid-header">
-            <button class="add-tag-btn" @click="openCreateForm">+ Agregar etiqueta</button>
+            <button class="add-tag-btn" @click.stop="openCreateForm">+ Agregar etiqueta</button>
             <button
               class="add-tag-btn"
               :class="{ 'edit-tag-btn--active': isEditMode }"
-              @click="toggleEditMode"
+              @click.stop="toggleEditMode"
             >
               {{ isEditMode ? '✓ Listo' : '✎ Editar' }}
             </button>
             <button
               class="add-tag-btn delete-tag-btn"
               :class="{ 'edit-tag-btn--active': isDeleteMode }"
-              @click="toggleDeleteMode"
+              @click.stop="toggleDeleteMode"
             >
               {{ isDeleteMode ? '✓ Listo' : '🗑 Eliminar' }}
             </button>
@@ -301,7 +335,7 @@ const deleteTag = async (option: TableValue) => {
                 'status-grid__item--delete': isDeleteMode,
               }"
               :style="{ backgroundColor: parseTag(option.value).color }"
-              @click="
+              @click.stop="
                 isEditMode
                   ? openEditForm(option)
                   : isDeleteMode
@@ -315,20 +349,39 @@ const deleteTag = async (option: TableValue) => {
         </template>
       </template>
     </OverlayMenu>
-  </template>
+  </div>
 </template>
 
 <style scoped>
-.cell-text {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.cell-container {
   width: 100%;
   height: 100%;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.cell-content {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cell-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #fff;
+  font-weight: 500;
+  font-size: 0.85rem;
+}
+
+.cell-empty {
+  color: inherit;
 }
 
 /* ─── Grid ─────────────────────────────────────────────────────────────────── */
