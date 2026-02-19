@@ -11,6 +11,7 @@ import TimelineValueCell from './field-cells/TimelineValueCell.vue'
 import ColumnComponent from './field-cells/ColumnComponent.vue'
 import ItemNameCell from './field-cells/ItemNameCell.vue'
 import BoardColumnSidebar from './BoardColumnSidebar.vue'
+import BoardItemSidebar from './BoardItemSidebar.vue'
 import type { ItemDetail } from '../types/items'
 
 interface Props {
@@ -43,8 +44,16 @@ const openSidebar = () => {
   showColumnSidebar.value = true
 }
 
-const handleColumnCreated = () => {
-  // Columns store updated locally in sidebar
+const showItemSidebar = ref(false)
+
+const openItemSidebar = () => {
+  showItemSidebar.value = true
+}
+
+const handleItemCreated = (item: ItemDetail) => {
+  localItems.value.push({
+    ...item,
+  })
 }
 </script>
 
@@ -56,7 +65,7 @@ const handleColumnCreated = () => {
         <button type="button" class="header--btn" title="Exportar a Excel">
           <i class="nf nf-md-microsoft_excel"></i>
         </button>
-        <button class="header--btn" title="Agregar item">
+        <button class="header--btn" title="Agregar item" @click="openItemSidebar">
           <i class="nf nf-md-playlist_plus"></i>
         </button>
         <button type="button" class="header--btn" title="Agregar columna" @click="openSidebar">
@@ -136,7 +145,13 @@ const handleColumnCreated = () => {
       :visible="showColumnSidebar"
       :board-id="group.boardId"
       @close="showColumnSidebar = false"
-      @created="handleColumnCreated"
+    />
+
+    <BoardItemSidebar
+      :visible="showItemSidebar"
+      :group-id="group.id"
+      @close="showItemSidebar = false"
+      @created="handleItemCreated"
     />
   </article>
 </template>
