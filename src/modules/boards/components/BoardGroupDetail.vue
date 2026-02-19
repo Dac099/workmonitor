@@ -10,6 +10,7 @@ import StatusValueCell from './field-cells/StatusValueCell.vue'
 import TimelineValueCell from './field-cells/TimelineValueCell.vue'
 import ColumnComponent from './field-cells/ColumnComponent.vue'
 import ItemNameCell from './field-cells/ItemNameCell.vue'
+import BoardColumnSidebar from './BoardColumnSidebar.vue'
 import type { ItemDetail } from '../types/items'
 
 interface Props {
@@ -35,6 +36,16 @@ watch(
 const getValueForColumn = (item: ItemDetail, columnId: string): Value | undefined => {
   return item.values.find((value) => value.columnId === columnId)
 }
+
+const showColumnSidebar = ref(false)
+
+const openSidebar = () => {
+  showColumnSidebar.value = true
+}
+
+const handleColumnCreated = () => {
+  // Columns store updated locally in sidebar
+}
 </script>
 
 <template>
@@ -47,6 +58,9 @@ const getValueForColumn = (item: ItemDetail, columnId: string): Value | undefine
         </button>
         <button class="header--btn" title="Agregar item">
           <i class="nf nf-md-playlist_plus"></i>
+        </button>
+        <button type="button" class="header--btn" title="Agregar columna" @click="openSidebar">
+          <i class="nf nf-md-table_column_plus_after"></i>
         </button>
       </section>
     </section>
@@ -117,6 +131,13 @@ const getValueForColumn = (item: ItemDetail, columnId: string): Value | undefine
         </tr>
       </tbody>
     </table>
+
+    <BoardColumnSidebar
+      :visible="showColumnSidebar"
+      :board-id="group.boardId"
+      @close="showColumnSidebar = false"
+      @created="handleColumnCreated"
+    />
   </article>
 </template>
 

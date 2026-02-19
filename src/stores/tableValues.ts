@@ -13,9 +13,29 @@ export const useTableValuesStore = defineStore('tableValues', () => {
     tableValuesByColumn.value = []
   }
 
+  const initializeColumn = (
+    columnId: string,
+    columnName: string = '',
+    defaultValues: { id: number; name: string; value: string }[] = [],
+  ) => {
+    if (!tableValuesByColumn.value.find((c) => c.columnId === columnId)) {
+      tableValuesByColumn.value.push({
+        columnId,
+        columnName,
+        values: defaultValues.map((v) => ({
+          id: v.id.toString(),
+          itemId: '',
+          columnId,
+          value: v.value,
+        })),
+      })
+    }
+  }
+
   return {
     tableValuesByColumn,
     setTableValues,
     clearTableValues,
+    initializeColumn,
   }
 })
