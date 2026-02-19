@@ -176,6 +176,7 @@ th {
   grid-template-columns: 80px;
   grid-auto-rows: 35px;
   border-radius: 3px;
+  z-index: 2;
 }
 
 .menu-trigger {

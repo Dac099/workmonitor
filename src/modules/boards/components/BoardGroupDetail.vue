@@ -89,7 +89,9 @@ const getValueForColumn = (item: ItemDetail, columnId: string): Value | undefine
 
             <DateValueCell
               v-else-if="column.type === 'date'"
-              :value="getValueForColumn(item, column.id)?.value"
+              :value="getValueForColumn(item, column.id)"
+              :item-id="item.id"
+              :column-id="column.id"
             >
               <span class="empty-value"> - </span>
             </DateValueCell>
@@ -106,6 +108,8 @@ const getValueForColumn = (item: ItemDetail, columnId: string): Value | undefine
             <TimelineValueCell
               v-else-if="column.type === 'timeline'"
               :value="getValueForColumn(item, column.id)"
+              :item-id="item.id"
+              :column-id="column.id"
             >
               <span class="empty-value"> - </span>
             </TimelineValueCell>
