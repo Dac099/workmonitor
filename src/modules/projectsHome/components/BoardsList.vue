@@ -48,7 +48,9 @@ const goToBoard = (boardId: string) => {
           <div class="board-content">
             <h3>{{ board.name }}</h3>
             <p class="board-description">{{ board.description || 'Sin descripción' }}</p>
-            <p class="board-id">ID: {{ board.workspaceId }}</p>
+            <div class="board-footer">
+              <span class="board-id">ID: {{ board.workspaceId }}</span>
+            </div>
           </div>
         </article>
       </div>
@@ -59,83 +61,150 @@ const goToBoard = (boardId: string) => {
 <style scoped>
 .boards-container {
   margin-top: 20px;
+  padding-bottom: 40px;
 }
 
 .workspace-group {
-  margin-bottom: 30px;
+  margin-bottom: 40px;
 }
 
 .workspace-title {
   color: var(--dark-color);
-  font-size: 18px;
-  font-weight: 600;
-  margin-bottom: 12px;
-  padding-bottom: 8px;
-  border-bottom: 2px solid var(--ter-color);
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--ter-color);
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .boards-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 24px;
 }
 
 .board-card {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  justify-content: space-between;
   gap: 16px;
-  padding: 16px;
+  padding: 24px;
   background-color: var(--sec-color);
   border: 1px solid var(--ter-color);
-  border-radius: 8px;
-  transition: all 0.3s ease;
+  border-radius: 16px;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
   cursor: pointer;
+  height: 100%;
+  position: relative;
 }
 
 .board-card:hover {
   background-color: var(--main-color);
-  box-shadow: 0 4px 12px var(--shadow-color);
+  box-shadow: 0 10px 25px -5px var(--shadow-color);
   border-color: var(--contrast-color);
-  transform: translateY(-2px);
+  transform: translateY(-4px);
+}
+
+.board-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  width: 100%;
 }
 
 .board-icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 48px;
+  height: 48px;
   background-color: var(--contrast-color);
-  border-radius: 6px;
+  border-radius: 12px;
   flex-shrink: 0;
+  margin-bottom: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
 }
 
 .board-icon i {
   color: var(--main-color);
-  font-size: 20px;
+  font-size: 24px;
 }
 
 .board-content {
   flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 .board-content h3 {
   color: var(--dark-color);
-  margin: 0 0 6px 0;
-  font-size: 16px;
+  margin: 0 0 8px 0;
+  font-size: 18px;
   font-weight: 600;
+  line-height: 1.3;
 }
 
 .board-description {
   color: var(--dark-color);
-  margin: 0 0 6px 0;
+  opacity: 0.8;
+  margin: 0 0 16px 0;
   font-size: 14px;
+  line-height: 1.5;
+  display: -webkit-box;
+  line-clamp: 3;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.board-footer {
+  margin-top: auto;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
 }
 
 .board-id {
   color: #999;
   margin: 0;
-  font-size: 12px;
-  font-style: italic;
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+@media (max-width: 600px) {
+  .boards-list {
+    grid-template-columns: 1fr;
+  }
+
+  .board-card {
+    flex-direction: row;
+    align-items: center;
+    padding: 16px;
+  }
+
+  .board-icon {
+    margin-bottom: 0;
+    width: 40px;
+    height: 40px;
+  }
+
+  .board-icon i {
+    font-size: 20px;
+  }
+
+  .board-description,
+  .board-footer {
+    display: none;
+  }
+
+  .board-content h3 {
+    margin-bottom: 0;
+    font-size: 16px;
+  }
 }
 </style>
