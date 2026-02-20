@@ -2,7 +2,8 @@
 import { computed, ref } from 'vue'
 import type { Value } from '../../types/values'
 import OverlayMenu from '@/shared/components/OverlayMenu.vue'
-import { API_BASE_URL } from '@/utils/contants'
+import { useLocalValue } from '../../composables/useLocalValue'
+import { useTableValueAPI } from '../../composables/useTableValueAPI'
 
 interface Props {
   value?: Value
@@ -12,12 +13,18 @@ interface Props {
 
 const props = defineProps<Props>()
 const overlayMenu = ref<InstanceType<typeof OverlayMenu> | null>(null)
-const localValue = ref<Value | undefined>(props.value ? { ...props.value } : undefined)
+
+const { localValue, updateLocal, setId } = useLocalValue(props.value, {
+  itemId: props.itemId,
+  columnId: props.columnId,
+  columnType: 'timeline',
+})
+
+const { isSaving, save: saveToAPI } = useTableValueAPI()
 
 // Form state
 const startDate = ref('')
 const endDate = ref('')
-const isSaving = ref(false)
 
 const dateRange = computed<[string, string] | null>(() => {
   const v = localValue.value ?? props.value
@@ -67,8 +74,6 @@ const progressPercentage = computed(() => {
 
 const openOverlay = (event: MouseEvent) => {
   if (dateRange.value) {
-    // Extract YYYY-MM-DD from ISO string for input[type=date]
-    // Assuming ISO string like "2025-12-30T06:00:00.000Z"
     startDate.value = dateRange.value[0].split('T')[0] ?? ''
     endDate.value = dateRange.value[1].split('T')[0] ?? ''
   } else {
@@ -86,59 +91,25 @@ const isValid = computed(() => {
 const save = async () => {
   if (!isValid.value || isSaving.value) return
 
-  isSaving.value = true
-
-  // Convert inputs (YYYY-MM-DD) to ISO strings (2025-12-30T06:00:00.000Z)
+  // Convert inputs (YYYY-MM-DD) to ISO strings
   const startISO = `${startDate.value}T06:00:00.000Z`
   const endISO = `${endDate.value}T06:00:00.000Z`
-
   const newValue = JSON.stringify([startISO, endISO])
 
   // Optimistic update
-  if (localValue.value) {
-    localValue.value.value = newValue
-  } else {
-    localValue.value = {
-      id: '',
-      itemId: props.itemId,
-      columnId: props.columnId,
-      value: newValue,
-      columnType: 'timeline',
-    }
-  }
-
+  updateLocal(newValue)
   overlayMenu.value?.close()
 
-  try {
-    if (props.value?.id) {
-      await fetch(`${API_BASE_URL}/tableValues/${props.value.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ value: newValue }),
-      })
-    } else {
-      const response = await fetch(`${API_BASE_URL}/tableValues/`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          itemId: props.itemId,
-          columnId: props.columnId,
-          value: newValue,
-        }),
-      })
-
-      if (response.ok) {
-        const created = await response.json()
-        if (localValue.value) {
-          localValue.value.id = created.id
-        }
-      }
-    }
-  } catch (error) {
-    console.error('Failed to save timeline', error)
-  } finally {
-    isSaving.value = false
-  }
+  // API call
+  await saveToAPI({
+    valueId: props.value?.id,
+    itemId: props.itemId,
+    columnId: props.columnId,
+    value: newValue,
+    onSuccess: (response) => {
+      setId(response.id)
+    },
+  })
 }
 </script>
 

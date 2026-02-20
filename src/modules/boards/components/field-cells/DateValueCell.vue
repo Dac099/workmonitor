@@ -2,7 +2,8 @@
 import { computed, ref } from 'vue'
 import type { Value } from '../../types/values'
 import OverlayMenu from '@/shared/components/OverlayMenu.vue'
-import { API_BASE_URL } from '@/utils/contants'
+import { useLocalValue } from '../../composables/useLocalValue'
+import { useTableValueAPI } from '../../composables/useTableValueAPI'
 
 interface Props {
   value?: Value
@@ -12,17 +13,20 @@ interface Props {
 
 const props = defineProps<Props>()
 const overlayMenu = ref<InstanceType<typeof OverlayMenu> | null>(null)
-const localValue = ref<Value | undefined>(props.value ? { ...props.value } : undefined)
+
+const { localValue, updateLocal, setId } = useLocalValue(props.value, {
+  itemId: props.itemId,
+  columnId: props.columnId,
+  columnType: 'date',
+})
+
+const { isSaving, save: saveToAPI } = useTableValueAPI()
 
 const dateInput = ref('')
-const isSaving = ref(false)
 
 const storedDate = computed(() => {
   const v = localValue.value ?? props.value
   if (!v || !v.value) return null
-  // v.value is a JSON stringified string in other cells, but for DateValueCell it might just be the string if older data?
-  // Previous TextValueCell logic used JSON.parse.
-  // Let's assume consistent pattern: JSON stringified string "2025-..." -> value: "\"2025-...\""
   try {
     return JSON.parse(v.value)
   } catch {
@@ -51,8 +55,6 @@ const displayValue = computed(() => {
 
 const openOverlay = (event: MouseEvent) => {
   if (storedDate.value) {
-    // storedDate is ISO string "2025-12-30T06:00:00.000Z"
-    // Input type="date" needs "YYYY-MM-DD"
     dateInput.value = storedDate.value.split('T')[0] ?? ''
   } else {
     dateInput.value = ''
@@ -63,57 +65,24 @@ const openOverlay = (event: MouseEvent) => {
 const save = async () => {
   if (!dateInput.value || isSaving.value) return
 
-  isSaving.value = true
-
   // Convert input (YYYY-MM-DD) to ISO string with T06:00:00.000Z
   const newDateISO = `${dateInput.value}T06:00:00.000Z`
   const newValue = JSON.stringify(newDateISO)
 
   // Optimistic update
-  if (localValue.value) {
-    localValue.value.value = newValue
-  } else {
-    localValue.value = {
-      id: '',
-      itemId: props.itemId,
-      columnId: props.columnId,
-      value: newValue,
-      columnType: 'date',
-    }
-  }
-
+  updateLocal(newValue)
   overlayMenu.value?.close()
 
-  try {
-    if (props.value?.id) {
-      await fetch(`${API_BASE_URL}/tableValues/${props.value.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ value: newValue }),
-      })
-    } else {
-      const response = await fetch(`${API_BASE_URL}/tableValues/`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          itemId: props.itemId,
-          columnId: props.columnId,
-          value: newValue,
-        }),
-      })
-
-      if (response.ok) {
-        const created = await response.json()
-        if (localValue.value) {
-          localValue.value.id = created.id
-        }
-      }
-    }
-  } catch (error) {
-    console.error('Failed to save date', error)
-  } finally {
-    isSaving.value = false
-  }
+  // API call
+  await saveToAPI({
+    valueId: props.value?.id,
+    itemId: props.itemId,
+    columnId: props.columnId,
+    value: newValue,
+    onSuccess: (response) => {
+      setId(response.id)
+    },
+  })
 }
 </script>
 

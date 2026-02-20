@@ -1,7 +1,8 @@
 <script lang="ts" setup>
 import { computed, ref, nextTick } from 'vue'
 import type { Value } from '../../types/values'
-import { API_BASE_URL } from '@/utils/contants'
+import { useLocalValue } from '../../composables/useLocalValue'
+import { useTableValueAPI } from '../../composables/useTableValueAPI'
 
 interface Props {
   value?: Value
@@ -12,8 +13,15 @@ interface Props {
 const props = defineProps<Props>()
 const isEditing = ref(false)
 const inputRef = ref<HTMLInputElement | null>(null)
-const localValue = ref<Value | undefined>(props.value ? { ...props.value } : undefined)
 const editValue = ref<number | string>('')
+
+const { localValue, updateLocal, setId } = useLocalValue(props.value, {
+  itemId: props.itemId,
+  columnId: props.columnId,
+  columnType: 'number',
+})
+
+const { save: saveToAPI } = useTableValueAPI()
 
 // Use localValue for optimistic updates, falling back to props if undefined
 const displayValue = computed(() => {
@@ -50,52 +58,20 @@ const save = async () => {
   }
 
   // Optimistic update
-  // Ensure we store it as a number if possible, but JSON.stringify handles it
   const jsonValue = JSON.stringify(newValue)
-
-  if (localValue.value) {
-    localValue.value.value = jsonValue
-  } else {
-    localValue.value = {
-      id: '', // temp
-      itemId: props.itemId,
-      columnId: props.columnId,
-      value: jsonValue,
-      columnType: 'number',
-    }
-  }
-
+  updateLocal(jsonValue)
   isEditing.value = false
 
-  try {
-    if (props.value?.id) {
-      await fetch(`${API_BASE_URL}/tableValues/${props.value.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ value: jsonValue }),
-      })
-    } else {
-      const response = await fetch(`${API_BASE_URL}/tableValues/`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          itemId: props.itemId,
-          columnId: props.columnId,
-          value: jsonValue,
-        }),
-      })
-
-      if (response.ok) {
-        const created = await response.json()
-        if (localValue.value) {
-          localValue.value.id = created.id
-        }
-      }
-    }
-  } catch (error) {
-    console.error('Failed to save number value', error)
-    // TODO revert optimistic update?
-  }
+  // API call
+  await saveToAPI({
+    valueId: props.value?.id,
+    itemId: props.itemId,
+    columnId: props.columnId,
+    value: jsonValue,
+    onSuccess: (response) => {
+      setId(response.id)
+    },
+  })
 }
 </script>
 
