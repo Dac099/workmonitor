@@ -1,6 +1,9 @@
 <script lang="ts" setup>
+import OverlayMenu from '@/shared/components/OverlayMenu.vue'
 import type { Group } from '../types/groups'
 import BoardGroupsList from './BoardGroupsList.vue'
+import SideBar from '@/shared/components/SideBar.vue'
+import { useBoardSidebar } from '../composables/useBoardSidebar'
 
 interface Props {
   groups: Group[]
@@ -15,6 +18,25 @@ const emit = defineEmits<{
   (e: 'select', groupId: string): void
   (e: 'groups-change', groups: Group[]): void
 }>()
+
+const {
+  availableColors,
+  menuRef,
+  isCreateGroupOpen,
+  groupName,
+  selectedColor,
+  isSubmitting,
+  canSubmit,
+  toggleMenu,
+  openCreateGroup,
+  closeCreateGroup,
+  handleSubmitGroup,
+} = useBoardSidebar({
+  getGroups: () => props.groups,
+  onGroupsChange: (groups) => emit('groups-change', groups),
+})
+const handleSearch = () => {}
+const handleExport = () => {}
 </script>
 
 <template>
@@ -23,7 +45,9 @@ const emit = defineEmits<{
       <section class="sidebar-header">
         <h4 :title="props.boardName">{{ props.boardName }}</h4>
         <div>
-          <button type="button">+</button>
+          <button type="button" @click="toggleMenu($event)">
+            <i class="nf nf-md-dots_vertical"></i>
+          </button>
           <button type="button" @click="emit('close')">
             <i class="nf nf-cod-layout_sidebar_left"></i>
           </button>
@@ -38,7 +62,56 @@ const emit = defineEmits<{
           @groups-change="emit('groups-change', $event)"
         />
       </section>
+      <OverlayMenu ref="menuRef">
+        <template #header>Opciones</template>
+        <template #content>
+          <section class="options-container">
+            <button type="button" @click="openCreateGroup">Crear grupo</button>
+            <button type="button" @click="handleSearch">Busqueda</button>
+            <button type="button" @click="handleExport">Exportar tablero</button>
+          </section>
+        </template>
+      </OverlayMenu>
     </aside>
+
+    <SideBar :is-open="isCreateGroupOpen" :initial-width="420" @close="closeCreateGroup">
+      <template #header>
+        <h4>Crear grupo</h4>
+      </template>
+      <form class="create-group-body" @submit.prevent="handleSubmitGroup">
+        <div class="input-group">
+          <label for="groupName">Nombre del grupo</label>
+          <input
+            id="groupName"
+            v-model="groupName"
+            type="text"
+            name="groupName"
+            placeholder="Nombre del grupo"
+            required
+          />
+        </div>
+
+        <div class="input-group">
+          <label>Color</label>
+          <div class="color-grid">
+            <button
+              v-for="color in availableColors"
+              :key="color"
+              type="button"
+              class="color-swatch"
+              :class="{ 'is-selected': selectedColor === color }"
+              :style="{ backgroundColor: color }"
+              :aria-pressed="selectedColor === color"
+              @click="selectedColor = color"
+            ></button>
+          </div>
+        </div>
+
+        <button type="submit" class="submit-button" :disabled="!canSubmit || isSubmitting">
+          Crear grupo
+        </button>
+      </form>
+    </SideBar>
   </article>
 </template>
 
@@ -82,8 +155,84 @@ const emit = defineEmits<{
   }
 }
 
+.options-container {
+  display: grid;
+  grid-auto-rows: 35px;
+  grid-template-columns: 1fr;
+}
+
+.options-container button {
+  cursor: pointer;
+  background-color: var(--main-color);
+  border: none;
+  outline: none;
+  text-align: left;
+  padding: 0 5px;
+}
+
+.options-container button:hover {
+  background-color: var(--ter-color);
+  text-align: right;
+}
+
 .sidebar-content {
   padding: 8px 6px 12px;
+}
+
+.create-group-body {
+  color: var(--dark-color);
+  display: grid;
+  gap: 16px;
+}
+
+.input-group {
+  display: grid;
+  gap: 6px;
+}
+
+.input-group label {
+  font-size: 0.9rem;
+  color: var(--dark-color);
+}
+
+.input-group input {
+  border: 1px solid var(--ter-color);
+  border-radius: 6px;
+  padding: 8px 10px;
+  background-color: var(--main-color);
+  color: var(--dark-color);
+}
+
+.color-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(26px, 1fr));
+  gap: 8px;
+}
+
+.color-swatch {
+  height: 26px;
+  border-radius: 6px;
+  border: 2px solid transparent;
+  cursor: pointer;
+}
+
+.color-swatch.is-selected {
+  border-color: var(--dark-color);
+  box-shadow: 0 0 0 2px var(--main-color) inset;
+}
+
+.submit-button {
+  height: 38px;
+  border: none;
+  border-radius: 6px;
+  background-color: var(--dark-color);
+  color: var(--main-color);
+  cursor: pointer;
+}
+
+.submit-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 @media (max-width: 768px) {
