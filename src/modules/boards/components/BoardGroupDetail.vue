@@ -234,6 +234,5 @@ const handleItemCreated = (item: ItemDetail) => {
   border-collapse: collapse;
   table-layout: auto;
   width: max-content;
-  min-width: 100%;
 }
 </style>

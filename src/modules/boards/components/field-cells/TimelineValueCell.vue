@@ -188,7 +188,6 @@ const save = async () => {
   color: var(--dark-color);
   white-space: nowrap;
   z-index: 1;
-  text-shadow: 0 0 2px rgba(255, 255, 255, 0.8);
 }
 
 .timeline-form {
