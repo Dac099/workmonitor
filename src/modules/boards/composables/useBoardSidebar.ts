@@ -1,8 +1,9 @@
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { API_BASE_URL } from '@/utils/contants'
 import { useColorsStore } from '@/stores/colors'
 import type { Group } from '../types/groups'
+import type { Board } from '../../projectsHome/types/board'
 
 interface OverlayMenuExpose {
   toggle: (event: MouseEvent) => void
@@ -18,10 +19,13 @@ export const useBoardSidebar = ({ getGroups, onGroupsChange }: UseBoardSidebarOp
   const route = useRoute()
   const colorsStore = useColorsStore()
   const menuRef = ref<OverlayMenuExpose | null>(null)
+  const boardsMenuRef = ref<OverlayMenuExpose | null>(null)
   const isCreateGroupOpen = ref(false)
   const groupName = ref('')
   const selectedColor = ref('')
   const isSubmitting = ref(false)
+  const boards = ref<Board[]>([])
+  const isBoardsLoading = ref(false)
 
   const canSubmit = computed(() => {
     return groupName.value.trim().length > 0 && selectedColor.value.trim().length > 0
@@ -35,9 +39,18 @@ export const useBoardSidebar = ({ getGroups, onGroupsChange }: UseBoardSidebarOp
     menuRef.value?.close()
   }
 
+  const toggleBoardsMenu = (event: MouseEvent) => {
+    boardsMenuRef.value?.toggle(event)
+  }
+
+  const closeBoardsMenu = () => {
+    boardsMenuRef.value?.close()
+  }
+
   const openCreateGroup = () => {
     isCreateGroupOpen.value = true
     closeMenu()
+    closeBoardsMenu()
   }
 
   const closeCreateGroup = () => {
@@ -79,15 +92,39 @@ export const useBoardSidebar = ({ getGroups, onGroupsChange }: UseBoardSidebarOp
     }
   }
 
+  const fetchBoards = async () => {
+    try {
+      isBoardsLoading.value = true
+      const response = await fetch(`${API_BASE_URL}/boards`)
+
+      if (!response.ok) {
+        return
+      }
+
+      boards.value = await response.json()
+    } finally {
+      isBoardsLoading.value = false
+    }
+  }
+
+  onMounted(() => {
+    fetchBoards()
+  })
+
   return {
     availableColors: colorsStore.availableColors,
     menuRef,
+    boardsMenuRef,
     isCreateGroupOpen,
     groupName,
     selectedColor,
     isSubmitting,
     canSubmit,
+    isBoardsLoading,
+    boards,
     toggleMenu,
+    toggleBoardsMenu,
+    closeBoardsMenu,
     openCreateGroup,
     closeCreateGroup,
     handleSubmitGroup,

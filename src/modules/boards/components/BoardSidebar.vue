@@ -4,6 +4,7 @@ import type { Group } from '../types/groups'
 import BoardGroupsList from './BoardGroupsList.vue'
 import SideBar from '@/shared/components/SideBar.vue'
 import { useBoardSidebar } from '../composables/useBoardSidebar'
+import BoardsList from '@/modules/projectsHome/components/BoardsList.vue'
 
 interface Props {
   groups: Group[]
@@ -22,12 +23,16 @@ const emit = defineEmits<{
 const {
   availableColors,
   menuRef,
+  boardsMenuRef,
   isCreateGroupOpen,
   groupName,
   selectedColor,
   isSubmitting,
   canSubmit,
+  isBoardsLoading,
+  boards,
   toggleMenu,
+  toggleBoardsMenu,
   openCreateGroup,
   closeCreateGroup,
   handleSubmitGroup,
@@ -43,7 +48,9 @@ const handleExport = () => {}
   <article>
     <aside class="main-container--sidebar">
       <section class="sidebar-header">
-        <h4 :title="props.boardName">{{ props.boardName }}</h4>
+        <h4 class="board-title" :title="props.boardName" @click="toggleBoardsMenu($event)">
+          {{ props.boardName }}
+        </h4>
         <div>
           <button type="button" @click="toggleMenu($event)">
             <i class="nf nf-md-dots_vertical"></i>
@@ -69,6 +76,17 @@ const handleExport = () => {}
             <button type="button" @click="openCreateGroup">Crear grupo</button>
             <button type="button" @click="handleSearch">Busqueda</button>
             <button type="button" @click="handleExport">Exportar tablero</button>
+          </section>
+        </template>
+      </OverlayMenu>
+
+      <OverlayMenu ref="boardsMenuRef">
+        <template #header>Tableros</template>
+        <template #content>
+          <section class="boards-overlay">
+            <div v-if="isBoardsLoading" class="boards-overlay__empty">Cargando tableros...</div>
+            <div v-else-if="boards.length === 0" class="boards-overlay__empty">No hay tableros</div>
+            <BoardsList v-else :boards="boards" :is-compact="true" />
           </section>
         </template>
       </OverlayMenu>
@@ -139,6 +157,10 @@ const handleExport = () => {}
     text-overflow: ellipsis;
   }
 
+  .board-title {
+    cursor: pointer;
+  }
+
   button {
     width: 30px;
     margin-right: 5px;
@@ -177,6 +199,18 @@ const handleExport = () => {}
 
 .sidebar-content {
   padding: 8px 6px 12px;
+}
+
+.boards-overlay {
+  max-height: 70vh;
+  overflow: auto;
+  padding: 0 12px 12px;
+}
+
+.boards-overlay__empty {
+  padding: 8px 12px;
+  color: var(--dark-color);
+  font-size: 0.9rem;
 }
 
 .create-group-body {

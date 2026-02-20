@@ -5,9 +5,12 @@ import { useRouter } from 'vue-router'
 
 interface Props {
   boards: Board[]
+  isCompact?: boolean
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  isCompact: false,
+})
 const router = useRouter()
 
 const groupedBoards = computed(() => {
@@ -33,22 +36,28 @@ const goToBoard = (boardId: string) => {
       v-for="[workspaceName, workspaceBoards] in groupedBoards"
       :key="workspaceName"
       class="workspace-group"
+      :class="{ 'is-compact': props.isCompact }"
     >
-      <h2 class="workspace-title">{{ workspaceName }}</h2>
+      <h2 class="workspace-title" :class="{ 'is-compact': props.isCompact }">
+        {{ workspaceName }}
+      </h2>
       <div class="boards-list">
         <article
           class="board-card"
+          :class="{ 'is-compact': props.isCompact }"
           v-for="board in workspaceBoards"
           :key="board.id"
           @click="goToBoard(board.id)"
         >
-          <div class="board-icon">
+          <div class="board-icon" :class="{ 'is-compact': props.isCompact }">
             <i class="nf nf-md-bulletin_board"></i>
           </div>
-          <div class="board-content">
+          <div class="board-content" :class="{ 'is-compact': props.isCompact }">
             <h3>{{ board.name }}</h3>
-            <p class="board-description">{{ board.description || 'Sin descripción' }}</p>
-            <div class="board-footer">
+            <p v-if="!props.isCompact" class="board-description">
+              {{ board.description || 'Sin descripción' }}
+            </p>
+            <div v-if="!props.isCompact" class="board-footer">
               <span class="board-id">ID: {{ board.workspaceId }}</span>
             </div>
           </div>
@@ -68,6 +77,10 @@ const goToBoard = (boardId: string) => {
   margin-bottom: 40px;
 }
 
+.workspace-group.is-compact {
+  margin-bottom: 16px;
+}
+
 .workspace-title {
   color: var(--dark-color);
   font-size: 20px;
@@ -78,6 +91,14 @@ const goToBoard = (boardId: string) => {
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+.workspace-title.is-compact {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  padding-bottom: 6px;
+  border-bottom: none;
 }
 
 .boards-list {
@@ -99,6 +120,22 @@ const goToBoard = (boardId: string) => {
   cursor: pointer;
   height: 100%;
   position: relative;
+}
+
+.board-card.is-compact {
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  margin-bottom: 8px;
+  border-radius: 8px;
+  height: auto;
+}
+
+.board-card.is-compact:hover {
+  background-color: var(--ter-color);
+  box-shadow: none;
+  transform: none;
 }
 
 .board-card:hover {
@@ -128,6 +165,12 @@ const goToBoard = (boardId: string) => {
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
 }
 
+.board-icon.is-compact {
+  width: 36px;
+  height: 36px;
+  margin-bottom: 0;
+}
+
 .board-icon i {
   color: var(--main-color);
   font-size: 24px;
@@ -139,12 +182,24 @@ const goToBoard = (boardId: string) => {
   flex-direction: column;
 }
 
+.board-content.is-compact {
+  flex: 1;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+}
+
 .board-content h3 {
   color: var(--dark-color);
   margin: 0 0 8px 0;
   font-size: 18px;
   font-weight: 600;
   line-height: 1.3;
+}
+
+.board-content.is-compact h3 {
+  margin: 0;
+  font-size: 14px;
 }
 
 .board-description {
