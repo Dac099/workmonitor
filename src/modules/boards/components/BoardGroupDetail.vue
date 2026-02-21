@@ -20,7 +20,7 @@ interface Props {
 
 const props = defineProps<Props>()
 const columnsStore = useColumnsStore()
-
+const itemsSelected = ref<string[]>([])
 const localItems = ref<GroupDetail['items']>([])
 
 watch(
@@ -54,6 +54,26 @@ const handleItemCreated = (item: ItemDetail) => {
   localItems.value.push({
     ...item,
   })
+}
+
+const handleItemSelection = (itemId: string, isSelected: boolean) => {
+  if (isSelected) {
+    itemsSelected.value.push(itemId)
+  } else {
+    itemsSelected.value = itemsSelected.value.filter((id) => id !== itemId)
+  }
+}
+
+const handleItemEdited = (payload: { id: string; name: string }) => {
+  const itemIndex = localItems.value.findIndex((item) => item.id === payload.id)
+  if (itemIndex !== -1) {
+    localItems.value[itemIndex]!.name = payload.name
+  }
+}
+
+const handleItemDeleted = (itemId: string) => {
+  localItems.value = localItems.value.filter((item) => item.id !== itemId)
+  itemsSelected.value = itemsSelected.value.filter((id) => id !== itemId)
 }
 </script>
 
@@ -89,7 +109,13 @@ const handleItemCreated = (item: ItemDetail) => {
       <tbody>
         <tr v-for="item in localItems" :key="item.id">
           <td>
-            <ItemNameCell :item="item" />
+            <ItemNameCell
+              :item="item"
+              @selectionChange="handleItemSelection"
+              @edit="handleItemEdited"
+              @delete="handleItemDeleted"
+              :multiple-selected="itemsSelected.length > 0"
+            />
           </td>
           <td v-for="column in columnsStore.getColumnsSorted()" :key="column.id">
             <TextValueCell
