@@ -21,6 +21,11 @@ interface MoveItemsPayload {
   targetGroupId: string
 }
 
+interface CopyItemPayload {
+  itemIds: string[]
+  targetGroupId: string
+}
+
 interface Props {
   group: GroupDetail
   groups: Group[]
@@ -112,6 +117,31 @@ const handleItemsMove = async (itemId: string, targetGroupId: string) => {
     console.error('Error al mover item:', error)
   }
 }
+
+const handleItemsCopy = async (itemId: string, targetGroupId: string) => {
+  const itemIsSelected = itemsSelected.value.includes(itemId)
+  if (!itemIsSelected) itemsSelected.value.push(itemId)
+  try {
+    const payload: CopyItemPayload = {
+      itemIds: [...itemsSelected.value],
+      targetGroupId: targetGroupId,
+    }
+
+    const response = await fetch(`${API_BASE_URL}/items/copy`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    })
+
+    if (!response.ok) {
+      return
+    }
+  } catch (error) {
+    console.error('Error al copiar item:', error)
+  }
+}
 </script>
 
 <template>
@@ -153,6 +183,7 @@ const handleItemsMove = async (itemId: string, targetGroupId: string) => {
               @edit="handleItemEdited"
               @delete="handleItemDeleted"
               @move="handleItemsMove"
+              @copy="handleItemsCopy"
               :multiple-selected="itemsSelected.length > 0"
             />
           </td>

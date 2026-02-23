@@ -21,7 +21,7 @@ interface Task {
 const emit = defineEmits<{
   selectionChange: [itemId: string, selected: boolean]
   move: [itemId: string, targetGroupId: string]
-  copy: [itemId: string]
+  copy: [itemId: string, targetGroupId: string]
   delete: [itemId: string]
   edit: [payload: { id: string; name: string }]
 }>()
@@ -34,6 +34,8 @@ const editItemName = ref('')
 const isUpdatingItem = ref(false)
 const showMoveSidebar = ref(false)
 const selectedTargetGroupId = ref('')
+const showCopySidebar = ref(false)
+const selectedCopyTargetGroupId = ref('')
 
 const handleContextMenu = (event: MouseEvent) => {
   event.preventDefault()
@@ -47,7 +49,8 @@ const handleMove = () => {
 }
 
 const handleCopy = () => {
-  emit('copy', props.item.id)
+  selectedCopyTargetGroupId.value = ''
+  showCopySidebar.value = true
   contextMenuRef.value?.close()
 }
 
@@ -129,6 +132,16 @@ const handleSubmitMove = () => {
   emit('move', props.item.id, selectedTargetGroupId.value)
   showMoveSidebar.value = false
   selectedTargetGroupId.value = ''
+}
+
+const handleSubmitCopy = () => {
+  if (!selectedCopyTargetGroupId.value) {
+    return
+  }
+
+  emit('copy', props.item.id, selectedCopyTargetGroupId.value)
+  showCopySidebar.value = false
+  selectedCopyTargetGroupId.value = ''
 }
 
 watch(itemSelected, (newValue) => {
@@ -268,6 +281,26 @@ const dialStrokeDasharray = computed(() => {
         </button>
       </form>
     </SideBar>
+
+    <SideBar :is-open="showCopySidebar" :initial-width="380" @close="showCopySidebar = false">
+      <template #header>
+        <h4>Copiar item</h4>
+      </template>
+      <form class="copy-form" @submit.prevent="handleSubmitCopy">
+        <div class="form-group">
+          <label for="copyTargetGroup">Elige el grupo destino</label>
+          <select id="copyTargetGroup" v-model="selectedCopyTargetGroupId" required>
+            <option value="" disabled>Selecciona un grupo</option>
+            <option v-for="group in props.groups" :key="group.id" :value="group.id">
+              {{ group.name }}
+            </option>
+          </select>
+        </div>
+        <button type="submit" class="submit-btn" :disabled="!selectedCopyTargetGroupId">
+          Copiar item
+        </button>
+      </form>
+    </SideBar>
   </div>
 </template>
 
@@ -400,6 +433,11 @@ const dialStrokeDasharray = computed(() => {
 }
 
 .move-form {
+  display: grid;
+  gap: 16px;
+}
+
+.copy-form {
   display: grid;
   gap: 16px;
 }
