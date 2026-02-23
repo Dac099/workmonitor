@@ -55,31 +55,13 @@ const handleCopy = () => {
 }
 
 const handleDelete = () => {
-  const confirmed = confirm(`¿Estás seguro de que deseas eliminar el item "${props.item.name}"?`)
+  const confirmed = confirm(
+    `¿Estás seguro de que deseas eliminar ${props.multipleSelected ? 'los items seleccionados' : `el item "${props.item.name}"`}?`,
+  )
   if (confirmed) {
-    handleDeleteItem()
+    emit('delete', props.item.id)
   }
   contextMenuRef.value?.close()
-}
-
-const handleDeleteItem = async () => {
-  try {
-    isUpdatingItem.value = true
-    const response = await fetch(`${API_BASE_URL}/items/${props.item.id}`, {
-      method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    })
-
-    if (!response.ok) {
-      return
-    }
-
-    emit('delete', props.item.id)
-  } finally {
-    isUpdatingItem.value = false
-  }
 }
 
 const handleEdit = () => {

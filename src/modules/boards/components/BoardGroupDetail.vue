@@ -26,6 +26,10 @@ interface CopyItemPayload {
   targetGroupId: string
 }
 
+interface DeleteItemsPayload {
+  itemIds: string[]
+}
+
 interface Props {
   group: GroupDetail
   groups: Group[]
@@ -84,9 +88,32 @@ const handleItemEdited = (payload: { id: string; name: string }) => {
   }
 }
 
-const handleItemDeleted = (itemId: string) => {
-  localItems.value = localItems.value.filter((item) => item.id !== itemId)
-  itemsSelected.value = itemsSelected.value.filter((id) => id !== itemId)
+const handleItemDeleted = async (itemId: string) => {
+  const itemIsSelected = itemsSelected.value.includes(itemId)
+  if (!itemIsSelected) itemsSelected.value.push(itemId)
+
+  try {
+    const payload: DeleteItemsPayload = {
+      itemIds: [...itemsSelected.value],
+    }
+
+    const response = await fetch(`${API_BASE_URL}/items`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    })
+
+    if (!response.ok) {
+      return
+    }
+
+    localItems.value = localItems.value.filter((item) => !itemsSelected.value.includes(item.id))
+    itemsSelected.value = []
+  } catch (error) {
+    console.error('Error al eliminar items:', error)
+  }
 }
 
 const handleItemsMove = async (itemId: string, targetGroupId: string) => {
