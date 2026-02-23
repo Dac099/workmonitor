@@ -13,9 +13,17 @@ import ItemNameCell from './field-cells/ItemNameCell.vue'
 import BoardColumnSidebar from './BoardColumnSidebar.vue'
 import BoardItemSidebar from './BoardItemSidebar.vue'
 import type { ItemDetail } from '../types/items'
+import type { Group } from '../types/groups'
+import { API_BASE_URL } from '@/utils/contants'
+
+interface MoveItemsPayload {
+  itemIds: string[]
+  targetGroupId: string
+}
 
 interface Props {
   group: GroupDetail
+  groups: Group[]
 }
 
 const props = defineProps<Props>()
@@ -75,6 +83,35 @@ const handleItemDeleted = (itemId: string) => {
   localItems.value = localItems.value.filter((item) => item.id !== itemId)
   itemsSelected.value = itemsSelected.value.filter((id) => id !== itemId)
 }
+
+const handleItemsMove = async (itemId: string, targetGroupId: string) => {
+  const itemIsSelected = itemsSelected.value.includes(itemId)
+  if (!itemIsSelected) itemsSelected.value.push(itemId)
+
+  try {
+    const payload: MoveItemsPayload = {
+      itemIds: [...itemsSelected.value],
+      targetGroupId: targetGroupId,
+    }
+
+    const response = await fetch(`${API_BASE_URL}/items/move`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    })
+
+    if (!response.ok) {
+      return
+    }
+
+    localItems.value = localItems.value.filter((item) => !itemsSelected.value.includes(item.id))
+    itemsSelected.value = []
+  } catch (error) {
+    console.error('Error al mover item:', error)
+  }
+}
 </script>
 
 <template>
@@ -111,9 +148,11 @@ const handleItemDeleted = (itemId: string) => {
           <td>
             <ItemNameCell
               :item="item"
+              :groups="props.groups"
               @selectionChange="handleItemSelection"
               @edit="handleItemEdited"
               @delete="handleItemDeleted"
+              @move="handleItemsMove"
               :multiple-selected="itemsSelected.length > 0"
             />
           </td>

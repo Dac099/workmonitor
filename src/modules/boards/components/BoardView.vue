@@ -69,7 +69,7 @@ const {
           :action="handleGroupErrorAction"
         />
       </section>
-      <BoardGroupDetail v-else-if="groupToRender" :group="groupToRender" />
+      <BoardGroupDetail v-else-if="groupToRender" :group="groupToRender" :groups="groupsList" />
       <div v-else class="content-empty">Selecciona un grupo</div>
     </section>
   </article>

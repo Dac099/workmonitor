@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import { computed, ref, watch } from 'vue'
 import type { ItemDetail } from '../../types/items'
+import type { Group } from '../../types/groups'
 import OverlayMenu from '@/shared/components/OverlayMenu.vue'
 import SideBar from '@/shared/components/SideBar.vue'
 import { API_BASE_URL } from '@/utils/contants'
@@ -8,6 +9,7 @@ import { API_BASE_URL } from '@/utils/contants'
 interface Props {
   item: ItemDetail
   multipleSelected: boolean
+  groups: Group[]
 }
 
 interface Task {
@@ -18,7 +20,7 @@ interface Task {
 
 const emit = defineEmits<{
   selectionChange: [itemId: string, selected: boolean]
-  move: [itemId: string]
+  move: [itemId: string, targetGroupId: string]
   copy: [itemId: string]
   delete: [itemId: string]
   edit: [payload: { id: string; name: string }]
@@ -30,6 +32,8 @@ const contextMenuRef = ref<InstanceType<typeof OverlayMenu> | null>(null)
 const showEditSidebar = ref(false)
 const editItemName = ref('')
 const isUpdatingItem = ref(false)
+const showMoveSidebar = ref(false)
+const selectedTargetGroupId = ref('')
 
 const handleContextMenu = (event: MouseEvent) => {
   event.preventDefault()
@@ -37,7 +41,8 @@ const handleContextMenu = (event: MouseEvent) => {
 }
 
 const handleMove = () => {
-  emit('move', props.item.id)
+  selectedTargetGroupId.value = ''
+  showMoveSidebar.value = true
   contextMenuRef.value?.close()
 }
 
@@ -114,6 +119,16 @@ const handleSubmitEditItem = async () => {
 const handleCloseEditSidebar = () => {
   showEditSidebar.value = false
   editItemName.value = ''
+}
+
+const handleSubmitMove = () => {
+  if (!selectedTargetGroupId.value) {
+    return
+  }
+
+  emit('move', props.item.id, selectedTargetGroupId.value)
+  showMoveSidebar.value = false
+  selectedTargetGroupId.value = ''
 }
 
 watch(itemSelected, (newValue) => {
@@ -230,6 +245,26 @@ const dialStrokeDasharray = computed(() => {
         </div>
         <button type="submit" class="submit-btn" :disabled="!canSubmitEdit() || isUpdatingItem">
           {{ isUpdatingItem ? 'Guardando...' : 'Guardar cambios' }}
+        </button>
+      </form>
+    </SideBar>
+
+    <SideBar :is-open="showMoveSidebar" :initial-width="380" @close="showMoveSidebar = false">
+      <template #header>
+        <h4>Mover item</h4>
+      </template>
+      <form class="move-form" @submit.prevent="handleSubmitMove">
+        <div class="form-group">
+          <label for="targetGroup">Elige el grupo destino</label>
+          <select id="targetGroup" v-model="selectedTargetGroupId" required>
+            <option value="" disabled>Selecciona un grupo</option>
+            <option v-for="group in props.groups" :key="group.id" :value="group.id">
+              {{ group.name }}
+            </option>
+          </select>
+        </div>
+        <button type="submit" class="submit-btn" :disabled="!selectedTargetGroupId">
+          Mover item
         </button>
       </form>
     </SideBar>
@@ -364,6 +399,11 @@ const dialStrokeDasharray = computed(() => {
   gap: 16px;
 }
 
+.move-form {
+  display: grid;
+  gap: 16px;
+}
+
 .form-group {
   display: grid;
   gap: 6px;
@@ -386,6 +426,21 @@ const dialStrokeDasharray = computed(() => {
 }
 
 .form-group input:focus {
+  outline: none;
+  border-color: var(--contrast-color);
+}
+
+.form-group select {
+  border: 1px solid var(--ter-color);
+  border-radius: 6px;
+  padding: 8px 10px;
+  background-color: var(--main-color);
+  color: var(--dark-color);
+  font-family: 'Poppins', sans-serif;
+  transition: border-color 0.2s ease;
+}
+
+.form-group select:focus {
   outline: none;
   border-color: var(--contrast-color);
 }
