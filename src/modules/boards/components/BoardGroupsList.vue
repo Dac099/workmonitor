@@ -1,7 +1,8 @@
 <script lang="ts" setup>
-import { toRef } from 'vue'
+import { ref, toRef } from 'vue'
 import type { Group } from '../types/groups'
 import SideBar from '@/shared/components/SideBar.vue'
+import OverlayMenu from '@/shared/components/OverlayMenu.vue'
 import { useColorsStore } from '@/stores/colors'
 import { useGroupsList } from '../composables/useGroupsList'
 
@@ -21,22 +22,18 @@ const groupsRef = toRef(props, 'groups')
 
 const {
   localGroups,
-  openMenuId,
   isEditOpen,
   isMoveOpen,
   isCopyOpen,
   editForm,
   boardsList,
   targetBoardId,
-  toggleMenu,
   openEdit,
   closeEdit,
   submitEdit,
   handleDelete,
-  openMove,
   closeMove,
   submitMove,
-  openCopy,
   closeCopy,
   submitCopy,
 } = useGroupsList({
@@ -44,6 +41,18 @@ const {
   onSelect: (groupId) => emit('select', groupId),
   onGroupsChange: (groups) => emit('groups-change', groups),
 })
+
+const menuRef = ref<InstanceType<typeof OverlayMenu> | null>(null)
+const activeMenuGroup = ref<Group | null>(null)
+
+const openMenu = (group: Group, event: MouseEvent) => {
+  activeMenuGroup.value = group
+  menuRef.value?.toggle(event)
+}
+
+const closeMenu = () => {
+  menuRef.value?.close()
+}
 </script>
 
 <template>
@@ -60,17 +69,53 @@ const {
         <i class="nf nf-md-folder_table_outline icon-group"></i>
         <span class="group-name" :title="group.name">{{ group.name }}</span>
       </div>
-      <button class="group-menu__toggle" type="button" @click.stop="toggleMenu(group.id)">
+      <button class="group-menu__toggle" type="button" @click.stop="openMenu(group, $event)">
         <i class="nf nf-md-dots_vertical"></i>
       </button>
-      <div v-if="openMenuId === group.id" class="group-menu" @click.stop>
-        <button type="button" @click="openEdit(group)">Editar</button>
-        <button type="button" @click="handleDelete(group.id)">Eliminar</button>
-        <button type="button" @click="openMove(group)">Mover</button>
-        <button type="button" @click="openCopy(group)">Copiar</button>
-      </div>
     </article>
   </div>
+
+  <OverlayMenu ref="menuRef">
+    <template #header>
+      <span class="group-menu__title">Acciones</span>
+    </template>
+    <template #content>
+      <div class="group-menu" @click.stop>
+        <button
+          type="button"
+          class="group-menu__item"
+          :disabled="!activeMenuGroup"
+          @click="activeMenuGroup && (openEdit(activeMenuGroup), closeMenu())"
+        >
+          Editar
+        </button>
+        <button
+          type="button"
+          class="group-menu__item"
+          :disabled="!activeMenuGroup"
+          @click="activeMenuGroup && (handleDelete(activeMenuGroup.id), closeMenu())"
+        >
+          Eliminar
+        </button>
+        <!-- <button
+          type="button"
+          class="group-menu__item"
+          :disabled="!activeMenuGroup"
+          @click="activeMenuGroup && (openMove(activeMenuGroup), closeMenu())"
+        >
+          Mover
+        </button>
+        <button
+          type="button"
+          class="group-menu__item"
+          :disabled="!activeMenuGroup"
+          @click="activeMenuGroup && (openCopy(activeMenuGroup), closeMenu())"
+        >
+          Copiar
+        </button> -->
+      </div>
+    </template>
+  </OverlayMenu>
 
   <SideBar :is-open="isEditOpen" @close="closeEdit">
     <template #header>
@@ -202,29 +247,33 @@ const {
 }
 
 .group-menu {
-  position: absolute;
-  right: 8px;
-  top: 36px;
   display: flex;
   flex-direction: column;
-  background: var(--main-color);
-  border: 1px solid var(--ter-color);
-  border-radius: 6px;
-  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.12);
-  z-index: 100;
-  min-width: 140px;
+  gap: 2px;
+  padding: 6px;
 }
 
-.group-menu button {
+.group-menu__title {
+  font-weight: 600;
+}
+
+.group-menu__item {
   text-align: left;
-  padding: 8px 10px;
+  padding: 6px 10px;
   border: none;
   background: transparent;
   cursor: pointer;
+  border-radius: 6px;
+  color: var(--dark-color);
 }
 
-.group-menu button:hover {
+.group-menu__item:hover {
   background: rgba(0, 0, 0, 0.06);
+}
+
+.group-menu__item:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 
 .edit-form {
