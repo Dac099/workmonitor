@@ -1,8 +1,7 @@
 <script lang="ts" setup>
 import { computed, ref, watch } from 'vue'
-import type { ItemDetail, ItemDetailDto } from '../../types/items'
+import type { ItemDetail } from '../../types/items'
 import type { Group } from '../../types/groups'
-import ItemDetailSidebarContent from '../ItemDetailSidebarContent.vue'
 import OverlayMenu from '@/shared/components/OverlayMenu.vue'
 import SideBar from '@/shared/components/SideBar.vue'
 import { API_BASE_URL } from '@/utils/contants'
@@ -37,21 +36,10 @@ const showMoveSidebar = ref(false)
 const selectedTargetGroupId = ref('')
 const showCopySidebar = ref(false)
 const selectedCopyTargetGroupId = ref('')
-const showChatSidebar = ref(false)
-const itemDetail = ref<ItemDetailDto | null>(null)
-const isLoadingDetail = ref(false)
-const detailError = ref('')
-const activeDetailTab = ref<'chats' | 'subitems' | 'project'>('chats')
 
 const handleContextMenu = (event: MouseEvent) => {
   event.preventDefault()
   contextMenuRef.value?.toggle(event)
-}
-
-const handleChatClick = async () => {
-  showChatSidebar.value = true
-  activeDetailTab.value = 'chats'
-  await fetchItemDetail()
 }
 
 const handleMove = () => {
@@ -118,10 +106,6 @@ const handleCloseEditSidebar = () => {
   editItemName.value = ''
 }
 
-const handleCloseChatSidebar = () => {
-  showChatSidebar.value = false
-}
-
 const handleSubmitMove = () => {
   if (!selectedTargetGroupId.value) {
     return
@@ -142,27 +126,6 @@ const handleSubmitCopy = () => {
   selectedCopyTargetGroupId.value = ''
 }
 
-const fetchItemDetail = async () => {
-  isLoadingDetail.value = true
-  detailError.value = ''
-
-  try {
-    const response = await fetch(`${API_BASE_URL}/items/${props.item.id}`)
-
-    if (!response.ok) {
-      throw new Error('Failed to fetch item details')
-    }
-
-    const data = (await response.json()) as ItemDetailDto
-    itemDetail.value = data
-  } catch (error) {
-    console.error('Failed to fetch item detail', error)
-    detailError.value = 'No se pudieron cargar los detalles del item.'
-  } finally {
-    isLoadingDetail.value = false
-  }
-}
-
 watch(itemSelected, (newValue) => {
   emit('selectionChange', props.item.id, newValue)
 })
@@ -171,11 +134,10 @@ const taskCompletion = computed(() => {
   let totalTasks = 0
   let completedTasks = 0
 
-  // Iterar sobre chats del item y parsear tasks desde el campo 'tasks' (JSON string)
   props.item.chats.forEach((chat) => {
     if (chat.tasks) {
       try {
-        const tasks: Task[] = JSON.parse(chat.tasks as string)
+        const tasks: Task[] = JSON.parse(chat.tasks)
         totalTasks += tasks.length
         completedTasks += tasks.filter((task) => task.completed).length
       } catch {
@@ -221,7 +183,7 @@ const dialStrokeDasharray = computed(() => {
         <span class="dial-text">{{ taskCompletion.percentage }}</span>
       </div>
 
-      <button type="button" class="chat-btn" title="Chats" @click.stop="handleChatClick">
+      <button type="button" class="chat-btn" title="Chats">
         <i class="nf nf-fa-message"></i>
       </button>
 
@@ -320,18 +282,6 @@ const dialStrokeDasharray = computed(() => {
           Copiar item
         </button>
       </form>
-    </SideBar>
-
-    <SideBar :is-open="showChatSidebar" :initial-width="420" @close="handleCloseChatSidebar">
-      <template #header>
-        <h4>Detalle del item</h4>
-      </template>
-      <ItemDetailSidebarContent
-        v-model:activeTab="activeDetailTab"
-        :item-detail="itemDetail"
-        :is-loading="isLoadingDetail"
-        :error-message="detailError"
-      />
     </SideBar>
   </div>
 </template>
