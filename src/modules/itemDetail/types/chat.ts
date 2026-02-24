@@ -3,7 +3,7 @@ export type Chat = {
   itemId: string
   message: string
   createdBy: string
-  responses: string
-  tasks: string
-  createdAt: string
+  createdAt?: string
+  responses?: string | null
+  tasks?: string | null
 }

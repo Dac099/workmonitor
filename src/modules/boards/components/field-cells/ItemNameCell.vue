@@ -5,6 +5,13 @@ import type { Group } from '../../types/groups'
 import OverlayMenu from '@/shared/components/OverlayMenu.vue'
 import SideBar from '@/shared/components/SideBar.vue'
 import { API_BASE_URL } from '@/utils/contants'
+import ChatSection from '@/modules/itemDetail/components/ChatSection.vue'
+import ProjectSection from '@/modules/itemDetail/components/ProjectSection.vue'
+import ContabilitySection from '@/modules/itemDetail/components/ContabilitySection.vue'
+import EditItemForm from '@/modules/boards/components/forms/EditItemForm.vue'
+import MoveItemForm from '@/modules/boards/components/forms/MoveItemForm.vue'
+import CopyItemForm from '@/modules/boards/components/forms/CopyItemForm.vue'
+import type { Chat } from '@/modules/itemDetail/types/chat'
 
 interface Props {
   item: ItemDetail
@@ -29,13 +36,12 @@ const emit = defineEmits<{
 const props = defineProps<Props>()
 const itemSelected = ref(false)
 const contextMenuRef = ref<InstanceType<typeof OverlayMenu> | null>(null)
-const showEditSidebar = ref(false)
-const editItemName = ref('')
 const isUpdatingItem = ref(false)
-const showMoveSidebar = ref(false)
-const selectedTargetGroupId = ref('')
-const showCopySidebar = ref(false)
-const selectedCopyTargetGroupId = ref('')
+type ActiveItemForm = 'edit' | 'move' | 'copy' | null
+const activeItemForm = ref<ActiveItemForm>(null)
+const showItemDetailsSidebar = ref(false)
+const detailViewSelected = ref<'chats' | 'project' | 'contable'>('chats')
+const liveChats = ref<Chat[]>(props.item.chats)
 
 const handleContextMenu = (event: MouseEvent) => {
   event.preventDefault()
@@ -43,14 +49,12 @@ const handleContextMenu = (event: MouseEvent) => {
 }
 
 const handleMove = () => {
-  selectedTargetGroupId.value = ''
-  showMoveSidebar.value = true
+  activeItemForm.value = 'move'
   contextMenuRef.value?.close()
 }
 
 const handleCopy = () => {
-  selectedCopyTargetGroupId.value = ''
-  showCopySidebar.value = true
+  activeItemForm.value = 'copy'
   contextMenuRef.value?.close()
 }
 
@@ -65,17 +69,17 @@ const handleDelete = () => {
 }
 
 const handleEdit = () => {
-  editItemName.value = props.item.name
-  showEditSidebar.value = true
+  activeItemForm.value = 'edit'
   contextMenuRef.value?.close()
 }
 
-const canSubmitEdit = () => {
-  return editItemName.value.trim().length > 0 && editItemName.value !== props.item.name
+const closeActiveItemForm = () => {
+  activeItemForm.value = null
 }
 
-const handleSubmitEditItem = async () => {
-  if (!canSubmitEdit()) return
+const handleSubmitEditItem = async (name: string) => {
+  const normalizedName = name.trim()
+  if (!normalizedName || normalizedName === props.item.name) return
 
   try {
     isUpdatingItem.value = true
@@ -85,7 +89,7 @@ const handleSubmitEditItem = async () => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        name: editItemName.value.trim(),
+        name: normalizedName,
       }),
     })
 
@@ -93,38 +97,37 @@ const handleSubmitEditItem = async () => {
       return
     }
 
-    emit('edit', { id: props.item.id, name: editItemName.value.trim() })
-    showEditSidebar.value = false
-    editItemName.value = ''
+    emit('edit', { id: props.item.id, name: normalizedName })
+    closeActiveItemForm()
   } finally {
     isUpdatingItem.value = false
   }
 }
 
-const handleCloseEditSidebar = () => {
-  showEditSidebar.value = false
-  editItemName.value = ''
-}
-
-const handleSubmitMove = () => {
-  if (!selectedTargetGroupId.value) {
+const handleSubmitMove = (targetGroupId: string) => {
+  if (!targetGroupId) {
     return
   }
 
-  emit('move', props.item.id, selectedTargetGroupId.value)
-  showMoveSidebar.value = false
-  selectedTargetGroupId.value = ''
+  emit('move', props.item.id, targetGroupId)
+  closeActiveItemForm()
 }
 
-const handleSubmitCopy = () => {
-  if (!selectedCopyTargetGroupId.value) {
+const handleSubmitCopy = (targetGroupId: string) => {
+  if (!targetGroupId) {
     return
   }
 
-  emit('copy', props.item.id, selectedCopyTargetGroupId.value)
-  showCopySidebar.value = false
-  selectedCopyTargetGroupId.value = ''
+  emit('copy', props.item.id, targetGroupId)
+  closeActiveItemForm()
 }
+
+const itemFormTitle = computed(() => {
+  if (activeItemForm.value === 'edit') return 'Editar item'
+  if (activeItemForm.value === 'move') return 'Mover item'
+  if (activeItemForm.value === 'copy') return 'Copiar item'
+  return ''
+})
 
 watch(itemSelected, (newValue) => {
   emit('selectionChange', props.item.id, newValue)
@@ -134,14 +137,14 @@ const taskCompletion = computed(() => {
   let totalTasks = 0
   let completedTasks = 0
 
-  props.item.chats.forEach((chat) => {
-    if (chat.tasks) {
+  liveChats.value.forEach((chat) => {
+    if (chat.tasks && chat.tasks !== '{[]}') {
       try {
         const tasks: Task[] = JSON.parse(chat.tasks)
         totalTasks += tasks.length
         completedTasks += tasks.filter((task) => task.completed).length
-      } catch {
-        // Si hay error al parsear, ignorar este chat
+      } catch (e) {
+        console.log(e)
       }
     }
   })
@@ -155,6 +158,24 @@ const dialStrokeDasharray = computed(() => {
   const progress = (taskCompletion.value.percentage / 100) * circumference
   return `${progress} ${circumference}`
 })
+
+const onUpdateChat = (updatedChat: Chat) => {
+  const chatIndex = liveChats.value.findIndex((chat) => chat.id === updatedChat.id)
+  if (chatIndex !== -1) {
+    liveChats.value[chatIndex] = updatedChat
+  }
+}
+
+const onCreateChat = (newChat: Chat) => {
+  liveChats.value.unshift(newChat)
+}
+
+const onDeleteChat = (chatId: string) => {
+  const chatIndex = liveChats.value.findIndex((chat) => chat.id === chatId)
+  if (chatIndex !== -1) {
+    liveChats.value.splice(chatIndex, 1)
+  }
+}
 </script>
 
 <template>
@@ -183,7 +204,7 @@ const dialStrokeDasharray = computed(() => {
         <span class="dial-text">{{ taskCompletion.percentage }}</span>
       </div>
 
-      <button type="button" class="chat-btn" title="Chats">
+      <button type="button" class="chat-btn" title="Chats" @click="showItemDetailsSidebar = true">
         <i class="nf nf-fa-message"></i>
       </button>
 
@@ -223,65 +244,74 @@ const dialStrokeDasharray = computed(() => {
       </template>
     </OverlayMenu>
 
-    <SideBar :is-open="showEditSidebar" :initial-width="380" @close="handleCloseEditSidebar">
+    <SideBar :is-open="activeItemForm !== null" :initial-width="380" @close="closeActiveItemForm">
       <template #header>
-        <h4>Editar item</h4>
+        <h4>{{ itemFormTitle }}</h4>
       </template>
-      <form class="edit-form" @submit.prevent="handleSubmitEditItem">
-        <div class="form-group">
-          <label for="editName">Nombre del item</label>
-          <input
-            id="editName"
-            v-model="editItemName"
-            type="text"
-            placeholder="Nombre del item"
-            required
-          />
-        </div>
-        <button type="submit" class="submit-btn" :disabled="!canSubmitEdit() || isUpdatingItem">
-          {{ isUpdatingItem ? 'Guardando...' : 'Guardar cambios' }}
-        </button>
-      </form>
+
+      <EditItemForm
+        v-if="activeItemForm === 'edit'"
+        :item-name="props.item.name"
+        :is-submitting="isUpdatingItem"
+        @submit="handleSubmitEditItem"
+      />
+      <MoveItemForm
+        v-else-if="activeItemForm === 'move'"
+        :groups="props.groups"
+        @submit="handleSubmitMove"
+      />
+      <CopyItemForm
+        v-else-if="activeItemForm === 'copy'"
+        :groups="props.groups"
+        @submit="handleSubmitCopy"
+      />
     </SideBar>
 
-    <SideBar :is-open="showMoveSidebar" :initial-width="380" @close="showMoveSidebar = false">
+    <SideBar
+      :is-open="showItemDetailsSidebar"
+      :initial-width="900"
+      @close="showItemDetailsSidebar = false"
+    >
       <template #header>
-        <h4>Mover item</h4>
+        <h4>{{ $props.item.name }}</h4>
       </template>
-      <form class="move-form" @submit.prevent="handleSubmitMove">
-        <div class="form-group">
-          <label for="targetGroup">Elige el grupo destino</label>
-          <select id="targetGroup" v-model="selectedTargetGroupId" required>
-            <option value="" disabled>Selecciona un grupo</option>
-            <option v-for="group in props.groups" :key="group.id" :value="group.id">
-              {{ group.name }}
-            </option>
-          </select>
-        </div>
-        <button type="submit" class="submit-btn" :disabled="!selectedTargetGroupId">
-          Mover item
-        </button>
-      </form>
-    </SideBar>
 
-    <SideBar :is-open="showCopySidebar" :initial-width="380" @close="showCopySidebar = false">
-      <template #header>
-        <h4>Copiar item</h4>
-      </template>
-      <form class="copy-form" @submit.prevent="handleSubmitCopy">
-        <div class="form-group">
-          <label for="copyTargetGroup">Elige el grupo destino</label>
-          <select id="copyTargetGroup" v-model="selectedCopyTargetGroupId" required>
-            <option value="" disabled>Selecciona un grupo</option>
-            <option v-for="group in props.groups" :key="group.id" :value="group.id">
-              {{ group.name }}
-            </option>
-          </select>
-        </div>
-        <button type="submit" class="submit-btn" :disabled="!selectedCopyTargetGroupId">
-          Copiar item
+      <section class="btns-list">
+        <button
+          type="button"
+          :class="['menu-option', { selected: detailViewSelected === 'chats' }]"
+          @click="detailViewSelected = 'chats'"
+        >
+          <i class="nf nf-fa-message"></i>
+          Chats
         </button>
-      </form>
+        <button
+          type="button"
+          :class="['menu-option', { selected: detailViewSelected === 'project' }]"
+          @click="detailViewSelected = 'project'"
+        >
+          <i class="nf nf-md-briefcase"></i>
+          Proyecto
+        </button>
+        <button
+          type="button"
+          :class="['menu-option', { selected: detailViewSelected === 'contable' }]"
+          @click="detailViewSelected = 'contable'"
+        >
+          <i class="nf nf-md-calculator"></i>
+          Contable
+        </button>
+      </section>
+      <ChatSection
+        v-if="detailViewSelected === 'chats'"
+        :chats="liveChats"
+        :item-id="props.item.id"
+        @update-chat="onUpdateChat"
+        @create-chat="onCreateChat"
+        @delete-chat="onDeleteChat"
+      />
+      <ProjectSection v-else-if="detailViewSelected === 'project'" />
+      <ContabilitySection v-else-if="detailViewSelected === 'contable'" />
     </SideBar>
   </div>
 </template>
@@ -409,79 +439,28 @@ const dialStrokeDasharray = computed(() => {
   cursor: pointer;
 }
 
-.edit-form {
-  display: grid;
-  gap: 16px;
+.btns-list {
+  display: flex;
+  gap: 12px;
+  padding: 12px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
 }
 
-.move-form {
-  display: grid;
-  gap: 16px;
-}
-
-.copy-form {
-  display: grid;
-  gap: 16px;
-}
-
-.form-group {
-  display: grid;
+.menu-option {
+  display: flex;
+  align-items: center;
   gap: 6px;
-}
-
-.form-group label {
-  font-size: 0.9rem;
-  color: var(--dark-color);
-  font-weight: 500;
-}
-
-.form-group input {
-  border: 1px solid var(--ter-color);
-  border-radius: 6px;
-  padding: 8px 10px;
-  background-color: var(--main-color);
-  color: var(--dark-color);
-  font-family: 'Poppins', sans-serif;
-  transition: border-color 0.2s ease;
-}
-
-.form-group input:focus {
-  outline: none;
-  border-color: var(--contrast-color);
-}
-
-.form-group select {
-  border: 1px solid var(--ter-color);
-  border-radius: 6px;
-  padding: 8px 10px;
-  background-color: var(--main-color);
-  color: var(--dark-color);
-  font-family: 'Poppins', sans-serif;
-  transition: border-color 0.2s ease;
-}
-
-.form-group select:focus {
-  outline: none;
-  border-color: var(--contrast-color);
-}
-
-.submit-btn {
-  height: 38px;
+  background: none;
   border: none;
-  border-radius: 6px;
-  background-color: var(--dark-color);
-  color: var(--main-color);
+  color: var(--dark-color);
   cursor: pointer;
-  font-weight: 500;
-  transition: opacity 0.2s ease;
+  font-size: 0.95rem;
+  padding: 6px 12px;
+  border-radius: 6px;
 }
 
-.submit-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.submit-btn:hover:not(:disabled) {
-  opacity: 0.9;
+.menu-option.selected {
+  background-color: var(--contrast-color);
+  color: var(--main-color);
 }
 </style>
