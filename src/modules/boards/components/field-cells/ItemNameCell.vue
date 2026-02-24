@@ -310,7 +310,11 @@ const onDeleteChat = (chatId: string) => {
         @create-chat="onCreateChat"
         @delete-chat="onDeleteChat"
       />
-      <ProjectSection v-else-if="detailViewSelected === 'project'" />
+      <ProjectSection
+        v-else-if="detailViewSelected === 'project'"
+        :item-id="props.item.id"
+        :project-id="props.item.projectId"
+      />
       <ContabilitySection v-else-if="detailViewSelected === 'contable'" />
     </SideBar>
   </div>

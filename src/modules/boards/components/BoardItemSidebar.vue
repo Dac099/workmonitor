@@ -1,16 +1,10 @@
 <script lang="ts" setup>
-import { ref, watch } from 'vue'
+import { ref } from 'vue'
 import SideBar from '@/shared/components/SideBar.vue'
+import ProjectSearchSelect from '@/shared/components/ProjectSearchSelect.vue'
 import { API_BASE_URL } from '@/utils/contants'
-import { useDebounce } from '@/shared/composables/useDebounce'
 import type { ItemDetail } from '../types/items'
-
-interface Project {
-  idProyect: string
-  nomProyecto?: string
-  nomCliente?: string
-  idCliente?: number
-}
+import type { ProjectSearchItem } from '@/shared/types/project'
 
 interface Props {
   visible: boolean
@@ -26,58 +20,14 @@ const emit = defineEmits<{
 }>()
 
 const isLoading = ref(false)
-const isSearching = ref(false)
 const itemName = ref('')
-const searchQuery = ref('')
-const selectedProject = ref<Project | null>(null)
-const searchResults = ref<Project[]>([])
-
-// Debounce search query
-const debouncedSearch = useDebounce(searchQuery, 300)
-
-// Watch debounced value to trigger API call
-watch(debouncedSearch, async (query) => {
-  if (!query || query.trim().length === 0) {
-    searchResults.value = []
-    return
-  }
-
-  isSearching.value = true
-  try {
-    const response = await fetch(`${API_BASE_URL}/proyects/search/${encodeURIComponent(query)}`)
-    if (response.ok) {
-      const data = await response.json()
-      // Pagination limit 15 (client-side)
-      searchResults.value = Array.isArray(data) ? data.slice(0, 15) : []
-    } else {
-      searchResults.value = []
-    }
-  } catch (error) {
-    console.error('Search failed', error)
-    searchResults.value = []
-  } finally {
-    isSearching.value = false
-  }
-})
+const selectedProject = ref<ProjectSearchItem | null>(null)
 
 const handleClose = () => {
   itemName.value = ''
-  searchQuery.value = ''
   selectedProject.value = null
-  searchResults.value = []
   emit('close')
   emit('update:visible', false)
-}
-
-const selectProject = (project: Project) => {
-  selectedProject.value = project
-  searchQuery.value = project.nomProyecto || ''
-  searchResults.value = [] // Close results dropdown
-}
-
-const clearProject = () => {
-  selectedProject.value = null
-  searchQuery.value = ''
 }
 
 const submit = async () => {
@@ -112,7 +62,6 @@ const submit = async () => {
 
     // Reset form
     itemName.value = ''
-    searchQuery.value = ''
     selectedProject.value = null
 
     handleClose()
@@ -141,44 +90,7 @@ const submit = async () => {
         />
       </div>
 
-      <div class="form-group search-group">
-        <label>Buscar Proyecto (Opcional)</label>
-        <input
-          v-model="searchQuery"
-          type="text"
-          class="form-input"
-          placeholder="Buscar proyecto..."
-          @focus="searchResults = []"
-        />
-
-        <div v-if="selectedProject" class="project-card">
-          <div class="project-card-content">
-            <span class="project-card-label">Proyecto Seleccionado</span>
-            <div class="project-card-title">{{ selectedProject.nomProyecto }}</div>
-            <div class="project-card-client" v-if="selectedProject.nomCliente">
-              Cliente: {{ selectedProject.nomCliente }}
-            </div>
-            <div class="project-card-ids">
-              <span class="id-tag">ID: {{ selectedProject.idProyect }}</span>
-            </div>
-          </div>
-          <button class="clear-project-btn" @click="clearProject">✕</button>
-        </div>
-
-        <div v-if="isSearching" class="search-loading">Buscando...</div>
-
-        <ul v-if="searchResults.length > 0 && !selectedProject" class="search-results">
-          <li
-            v-for="project in searchResults"
-            :key="project.idProyect"
-            class="search-result-item"
-            @click="selectProject(project)"
-          >
-            <div class="project-name">{{ project.nomProyecto }}</div>
-            <div class="client-name" v-if="project.nomCliente">{{ project.nomCliente }}</div>
-          </li>
-        </ul>
-      </div>
+      <ProjectSearchSelect v-model="selectedProject" />
 
       <button class="submit-btn" :disabled="!itemName.trim() || isLoading" @click="submit">
         {{ isLoading ? 'Creando...' : 'Crear Item' }}
@@ -198,7 +110,6 @@ const submit = async () => {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  position: relative;
 }
 
 .form-group label {
@@ -223,148 +134,6 @@ const submit = async () => {
 
 .form-input:focus {
   border-color: var(--contrast-color);
-}
-
-.search-results {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  background: white;
-  border: 1px solid var(--shadow-color);
-  border-radius: 4px;
-  max-height: 300px;
-  overflow-y: auto;
-  z-index: 10;
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-
-.search-result-item {
-  padding: 0.8rem;
-  cursor: pointer;
-  border-bottom: 1px solid #eee;
-  transition: background 0.1s;
-}
-
-.search-result-item:last-child {
-  border-bottom: none;
-}
-
-.search-result-item:hover {
-  background-color: var(--sec-color);
-}
-
-.project-name {
-  font-weight: 500;
-  color: var(--dark-color);
-}
-
-.client-name {
-  font-size: 0.8rem;
-  color: #666;
-}
-
-.project-card {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  padding: 1rem;
-  margin-top: 0.5rem;
-  background-color: #fff;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  transition: all 0.2s ease;
-  position: relative;
-  overflow: hidden;
-}
-
-.project-card::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 4px;
-  background-color: var(--contrast-color);
-}
-
-.project-card:hover {
-  border-color: #ccc;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
-}
-
-.project-card-content {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  flex: 1;
-}
-
-.project-card-label {
-  font-size: 0.7rem;
-  text-transform: uppercase;
-  letter-spacing: 0.8px;
-  color: #888;
-  font-weight: 600;
-  margin-bottom: 2px;
-}
-
-.project-card-title {
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--dark-color);
-  line-height: 1.3;
-}
-
-.project-card-client {
-  font-size: 0.85rem;
-  color: #555;
-  margin-top: 2px;
-}
-
-.project-card-ids {
-  display: flex;
-  gap: 8px;
-  margin-top: 8px;
-  flex-wrap: wrap;
-}
-
-.id-tag {
-  font-size: 0.75rem;
-  color: #777;
-  background-color: #f5f5f5;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-family: monospace;
-}
-
-.clear-project-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: #999;
-  padding: 8px;
-  border-radius: 50%;
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-left: 8px;
-}
-
-.clear-project-btn:hover {
-  color: #e53935;
-  background-color: rgba(229, 57, 53, 0.1);
-}
-
-.search-loading {
-  font-size: 0.8rem;
-  color: #888;
-  margin-top: 0.2rem;
 }
 
 .submit-btn {
