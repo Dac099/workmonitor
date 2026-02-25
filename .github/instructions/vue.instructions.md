@@ -10,3 +10,7 @@ Al trabajar con archivos .Vue, es importante seguir las mejores prácticas de Vu
 Las clases CSS aplicadas a los elementos deben seguir la convención de nomenclatura BEM (Block, Element, Modifier) para mantener la consistencia y claridad en el código. Esto facilita la comprensión de la estructura del componente y mejora la mantenibilidad del código a medida que el proyecto crece.
 
 Cada que un componente requiera de un tipo específico, se debe crear un archivo de tipos en la carpeta correspondiente al módulo. Esto ayuda a mantener el código organizado y facilita la reutilización de tipos en diferentes partes del proyecto. Además, se recomienda utilizar TypeScript para aprovechar las ventajas de la tipificación estática y mejorar la calidad del código.
+
+Para cada componente que crees necesitas basarte en crear diseños minimalistas, basados en los colores ya definidos en el archivo App.vue, utilizando la paleta de colores definida en el proyecto. Esto asegura una apariencia coherente en toda la aplicación y mejora la experiencia del usuario. Además, se recomienda utilizar componentes reutilizables y evitar la duplicación de código para mantener el proyecto limpio y fácil de mantener.
+
+Manten los componentes compactos y enfocados en una sola responsabilidad. Si un componente se vuelve demasiado grande o complejo, considera dividirlo en componentes más pequeños y reutilizables. Esto facilita la comprensión del código y mejora la mantenibilidad a largo plazo.
