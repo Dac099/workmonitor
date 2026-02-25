@@ -42,6 +42,7 @@ const activeItemForm = ref<ActiveItemForm>(null)
 const showItemDetailsSidebar = ref(false)
 const detailViewSelected = ref<'chats' | 'project' | 'contable'>('chats')
 const liveChats = ref<Chat[]>(props.item.chats)
+const canMoveOrCopy = computed(() => props.groups.length > 1)
 
 const handleContextMenu = (event: MouseEvent) => {
   event.preventDefault()
@@ -49,11 +50,19 @@ const handleContextMenu = (event: MouseEvent) => {
 }
 
 const handleMove = () => {
+  if (!canMoveOrCopy.value) {
+    return
+  }
+
   activeItemForm.value = 'move'
   contextMenuRef.value?.close()
 }
 
 const handleCopy = () => {
+  if (!canMoveOrCopy.value) {
+    return
+  }
+
   activeItemForm.value = 'copy'
   contextMenuRef.value?.close()
 }
@@ -179,8 +188,8 @@ const onDeleteChat = (chatId: string) => {
 </script>
 
 <template>
-  <div class="item-name-cell" @contextmenu="handleContextMenu">
-    <span class="item-name">{{ props.item.name }}</span>
+  <div class="item-name-cell">
+    <span class="item-name" @contextmenu="handleContextMenu">{{ props.item.name }}</span>
     <div class="item-controls">
       <div
         class="dial-container"
@@ -224,11 +233,11 @@ const onDeleteChat = (chatId: string) => {
             <i class="nf nf-md-pencil"></i>
             <span>Editar</span>
           </button>
-          <button type="button" class="context-menu-item" @click="handleCopy">
+          <button v-if="canMoveOrCopy" type="button" class="context-menu-item" @click="handleCopy">
             <i class="nf nf-md-content_copy"></i>
             <span>Copiar</span>
           </button>
-          <button type="button" class="context-menu-item" @click="handleMove">
+          <button v-if="canMoveOrCopy" type="button" class="context-menu-item" @click="handleMove">
             <i class="nf nf-md-arrow_all"></i>
             <span>Mover</span>
           </button>
@@ -315,7 +324,11 @@ const onDeleteChat = (chatId: string) => {
         :item-id="props.item.id"
         :project-id="props.item.projectId"
       />
-      <ContabilitySection v-else-if="detailViewSelected === 'contable'" />
+      <ContabilitySection
+        v-else-if="detailViewSelected === 'contable'"
+        :item-id="props.item.id"
+        :project-id="props.item.projectId"
+      />
     </SideBar>
   </div>
 </template>

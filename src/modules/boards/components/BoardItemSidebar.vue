@@ -9,6 +9,7 @@ import type { ProjectSearchItem } from '@/shared/types/project'
 interface Props {
   visible: boolean
   groupId: string
+  isContabilityMode?: boolean
 }
 
 const props = defineProps<Props>()
@@ -98,7 +99,7 @@ const submit = async () => {
         />
       </div>
 
-      <ProjectSearchSelect v-model="selectedProject" />
+      <ProjectSearchSelect v-model="selectedProject" v-if="!props.isContabilityMode" />
 
       <button class="submit-btn" :disabled="!itemName.trim() || isLoading" @click="submit">
         {{ isLoading ? 'Creando...' : 'Crear Item' }}

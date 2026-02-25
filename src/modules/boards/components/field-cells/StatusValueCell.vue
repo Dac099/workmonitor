@@ -1,8 +1,9 @@
 <script lang="ts" setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import type { Value } from '../../types/values'
 import type { TableValue } from '../../types/tableValues'
 import OverlayMenu from '@/shared/components/OverlayMenu.vue'
+import { useCobranzaTableValues } from '@/modules/boards/composables/useCobranzaTableValues'
 import { useTableValuesStore } from '@/stores/tableValues'
 import { useColorsStore } from '@/stores/colors'
 import { API_BASE_URL } from '@/utils/contants'
@@ -13,6 +14,7 @@ interface Props {
   value?: Value
   itemId?: string
   columnId?: string
+  useCobranzaStatusOptions?: boolean
 }
 
 type StatusTag = {
@@ -26,6 +28,7 @@ type ActiveView = 'grid' | 'create' | 'edit'
 
 const props = defineProps<Props>()
 const tableValuesStore = useTableValuesStore()
+const cobranzaTableValues = useCobranzaTableValues()
 const colorsStore = useColorsStore()
 const overlayMenu = ref<InstanceType<typeof OverlayMenu> | null>(null)
 const localValue = ref<Value | undefined>(props.value ? { ...props.value } : undefined)
@@ -49,10 +52,20 @@ const statusProperties = computed<StatusTag>(() =>
   localValue.value ? JSON.parse(localValue.value.value) : { color: 'transparent', text: '' },
 )
 
+const shouldHideCatalogControls = computed(() => props.useCobranzaStatusOptions === true)
+
+const tableValuesProvider = computed(() => {
+  if (shouldHideCatalogControls.value) {
+    return cobranzaTableValues.tableValuesByColumn.value
+  }
+
+  return tableValuesStore.tableValuesByColumn
+})
+
 const columnOptions = computed<TableValue[]>(() => {
   const colId = localValue.value?.columnId ?? props.columnId
   if (!colId) return []
-  const col = tableValuesStore.tableValuesByColumn.find((c) => c.columnId === colId)
+  const col = tableValuesProvider.value.find((c) => c.columnId === colId)
   return col?.values ?? []
 })
 
@@ -71,7 +84,23 @@ const parseTag = (rawValue: string): StatusTag => {
 const buildTagValue = (text: string, color: string) => JSON.stringify({ color, text: text.trim() })
 
 const findStoreColumn = (columnId: string) =>
-  tableValuesStore.tableValuesByColumn.find((c) => c.columnId === columnId)
+  tableValuesProvider.value.find((c) => c.columnId === columnId)
+
+watch(
+  () => props.useCobranzaStatusOptions,
+  async (shouldUseCobranza) => {
+    if (!shouldUseCobranza) {
+      return
+    }
+
+    await cobranzaTableValues.loadCobranzaTableValues()
+    activeView.value = 'grid'
+    isEditMode.value = false
+    isDeleteMode.value = false
+    editingTag.value = null
+  },
+  { immediate: true },
+)
 
 // ─── Grid actions ─────────────────────────────────────────────────────────────
 
@@ -144,12 +173,15 @@ const toggleDeleteMode = () => {
 // ─── Create form ──────────────────────────────────────────────────────────────
 
 const openCreateForm = () => {
+  if (shouldHideCatalogControls.value) return
+
   formText.value = ''
   formColor.value = colorsStore.availableColors[0] ?? ''
   activeView.value = 'create'
 }
 
 const createTag = async () => {
+  if (shouldHideCatalogControls.value) return
   if (!formText.value.trim() || isSaving.value) return
 
   isSaving.value = true
@@ -172,6 +204,7 @@ const createTag = async () => {
 // ─── Edit form ────────────────────────────────────────────────────────────────
 
 const openEditForm = (option: TableValue) => {
+  if (shouldHideCatalogControls.value) return
   if (!isEditMode.value) return
   const tag = parseTag(option.value)
   editingTag.value = option
@@ -181,6 +214,7 @@ const openEditForm = (option: TableValue) => {
 }
 
 const saveTag = async () => {
+  if (shouldHideCatalogControls.value) return
   if (!formText.value.trim() || isSaving.value || !editingTag.value) return
 
   isSaving.value = true
@@ -238,6 +272,7 @@ const cancelForm = () => {
 // ─── Delete ───────────────────────────────────────────────────────────────────
 
 const deleteTag = async (option: TableValue) => {
+  if (shouldHideCatalogControls.value) return
   if (!isDeleteMode.value) return
 
   const response = await fetch(`${API_BASE_URL}/tableValues/${option.id}`, {
@@ -308,7 +343,7 @@ const deleteTag = async (option: TableValue) => {
 
         <!-- Tag grid -->
         <template v-else>
-          <div class="status-grid-header">
+          <div v-if="!shouldHideCatalogControls" class="status-grid-header">
             <button class="add-tag-btn" @click.stop="openCreateForm">+ Agregar etiqueta</button>
             <button
               class="add-tag-btn"

@@ -1,8 +1,9 @@
 <script lang="ts" setup>
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import type { GroupDetail } from '../types/groups'
 import type { Value } from '../types/values'
 import { useColumnsStore } from '@/stores/columns'
+import { useContabilityColumnsStore } from '@/stores/contabilityColumns'
 import TextValueCell from './field-cells/TextValueCell.vue'
 import NumberValueCell from './field-cells/NumberValueCell.vue'
 import DateValueCell from './field-cells/DateValueCell.vue'
@@ -32,13 +33,23 @@ interface DeleteItemsPayload {
 
 interface Props {
   group: GroupDetail
-  groups: Group[]
+  groups?: Group[]
 }
 
 const props = defineProps<Props>()
 const columnsStore = useColumnsStore()
+const contabilityColumnsStore = useContabilityColumnsStore()
 const itemsSelected = ref<string[]>([])
 const localItems = ref<GroupDetail['items']>([])
+const isContabilityMode = computed(() => !props.groups || props.groups.length === 0)
+const shouldUseCobranzaStatusOptions = computed(() => isContabilityMode.value)
+const columnsToRender = computed(() => {
+  if (isContabilityMode.value) {
+    return contabilityColumnsStore.getColumnsSorted()
+  }
+
+  return columnsStore.getColumnsSorted()
+})
 
 watch(
   () => props.group,
@@ -176,13 +187,24 @@ const handleItemsCopy = async (itemId: string, targetGroupId: string) => {
     <section class="header-container">
       <p :title="group.name">{{ group.name }}</p>
       <section class="header--controls">
-        <button type="button" class="header--btn" title="Exportar a Excel">
+        <button
+          type="button"
+          class="header--btn"
+          title="Exportar a Excel"
+          v-if="!isContabilityMode"
+        >
           <i class="nf nf-md-microsoft_excel"></i>
         </button>
         <button class="header--btn" title="Agregar item" @click="openItemSidebar">
           <i class="nf nf-md-playlist_plus"></i>
         </button>
-        <button type="button" class="header--btn" title="Agregar columna" @click="openSidebar">
+        <button
+          v-if="!isContabilityMode"
+          type="button"
+          class="header--btn"
+          title="Agregar columna"
+          @click="openSidebar"
+        >
           <i class="nf nf-md-table_column_plus_after"></i>
         </button>
       </section>
@@ -192,11 +214,10 @@ const handleItemsCopy = async (itemId: string, targetGroupId: string) => {
       <thead>
         <tr>
           <th class="column-item--name">Item</th>
-          <ColumnComponent
-            v-for="column in columnsStore.getColumnsSorted()"
-            :key="column.id"
-            :column="column"
-          />
+          <template v-for="column in columnsToRender" :key="column.id">
+            <ColumnComponent v-if="!isContabilityMode" :column="column" />
+            <th v-else class="column-header-readonly">{{ column.name }}</th>
+          </template>
           <th class="control-component"></th>
         </tr>
       </thead>
@@ -205,7 +226,7 @@ const handleItemsCopy = async (itemId: string, targetGroupId: string) => {
           <td>
             <ItemNameCell
               :item="item"
-              :groups="props.groups"
+              :groups="props.groups ?? []"
               @selectionChange="handleItemSelection"
               @edit="handleItemEdited"
               @delete="handleItemDeleted"
@@ -214,7 +235,7 @@ const handleItemsCopy = async (itemId: string, targetGroupId: string) => {
               :multiple-selected="itemsSelected.length > 0"
             />
           </td>
-          <td v-for="column in columnsStore.getColumnsSorted()" :key="column.id">
+          <td v-for="column in columnsToRender" :key="column.id">
             <TextValueCell
               v-if="column.type === 'text'"
               :value="getValueForColumn(item, column.id)"
@@ -247,6 +268,7 @@ const handleItemsCopy = async (itemId: string, targetGroupId: string) => {
               :value="getValueForColumn(item, column.id)"
               :item-id="item.id"
               :column-id="column.id"
+              :use-cobranza-status-options="shouldUseCobranzaStatusOptions"
             >
               <span class="empty-value"> - </span>
             </StatusValueCell>
@@ -273,6 +295,7 @@ const handleItemsCopy = async (itemId: string, targetGroupId: string) => {
     <BoardItemSidebar
       :visible="showItemSidebar"
       :group-id="group.id"
+      :is-contability-mode="isContabilityMode"
       @close="showItemSidebar = false"
       @created="handleItemCreated"
     />
@@ -281,6 +304,14 @@ const handleItemsCopy = async (itemId: string, targetGroupId: string) => {
 
 <style scoped>
 .column-item--name {
+  min-width: 200px;
+  text-align: left;
+  border: 1px solid var(--ter-color);
+  padding: 3px 6px;
+  font-weight: 400;
+}
+
+.column-header-readonly {
   min-width: 200px;
   text-align: left;
   border: 1px solid var(--ter-color);
