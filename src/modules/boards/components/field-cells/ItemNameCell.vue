@@ -42,6 +42,7 @@ const activeItemForm = ref<ActiveItemForm>(null)
 const showItemDetailsSidebar = ref(false)
 const detailViewSelected = ref<'chats' | 'project' | 'contable'>('chats')
 const liveChats = ref<Chat[]>(props.item.chats)
+const itemProjectId = ref<string | null>(props.item.projectId)
 const canMoveOrCopy = computed(() => props.groups.length > 1)
 
 const handleContextMenu = (event: MouseEvent) => {
@@ -142,6 +143,13 @@ watch(itemSelected, (newValue) => {
   emit('selectionChange', props.item.id, newValue)
 })
 
+watch(
+  () => props.item.projectId,
+  (newProjectId) => {
+    itemProjectId.value = newProjectId
+  },
+)
+
 const taskCompletion = computed(() => {
   let totalTasks = 0
   let completedTasks = 0
@@ -184,6 +192,10 @@ const onDeleteChat = (chatId: string) => {
   if (chatIndex !== -1) {
     liveChats.value.splice(chatIndex, 1)
   }
+}
+
+const onProjectUpdated = (projectId: string | null) => {
+  itemProjectId.value = projectId
 }
 </script>
 
@@ -322,12 +334,13 @@ const onDeleteChat = (chatId: string) => {
       <ProjectSection
         v-else-if="detailViewSelected === 'project'"
         :item-id="props.item.id"
-        :project-id="props.item.projectId"
+        :project-id="itemProjectId"
+        @project-updated="onProjectUpdated"
       />
       <ContabilitySection
         v-else-if="detailViewSelected === 'contable'"
         :item-id="props.item.id"
-        :project-id="props.item.projectId"
+        :project-id="itemProjectId"
       />
     </SideBar>
   </div>

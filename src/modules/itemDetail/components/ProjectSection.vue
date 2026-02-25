@@ -20,6 +20,10 @@ type Props = {
   itemId: string
 }
 
+const emit = defineEmits<{
+  projectUpdated: [projectId: string | null]
+}>()
+
 const props = defineProps<Props>()
 
 const selectedProject = ref<ProjectSearchItem | null>(null)
@@ -85,6 +89,7 @@ const updateItemProject = async (projectId: string | null) => {
       selectedProject.value = null
       return
     }
+    emit('projectUpdated', projectId)
 
     await getProjectById(projectId)
     selectedProject.value = null
