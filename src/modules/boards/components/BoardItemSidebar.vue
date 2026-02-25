@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import SideBar from '@/shared/components/SideBar.vue'
 import ProjectSearchSelect from '@/shared/components/ProjectSearchSelect.vue'
 import { API_BASE_URL } from '@/utils/contants'
@@ -22,6 +22,14 @@ const emit = defineEmits<{
 const isLoading = ref(false)
 const itemName = ref('')
 const selectedProject = ref<ProjectSearchItem | null>(null)
+
+watch(selectedProject, (newSelectedProject) => {
+  if (!newSelectedProject) {
+    return
+  }
+
+  itemName.value = `${newSelectedProject.idProyect.trim()} | ${newSelectedProject.nomProyecto ?? ''}`
+})
 
 const handleClose = () => {
   itemName.value = ''
