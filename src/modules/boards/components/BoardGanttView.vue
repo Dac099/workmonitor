@@ -290,16 +290,16 @@ const goBack = () => {
 
 const toggleGanttGrid = () => {
   showGanttGrid.value = !showGanttGrid.value
-  
+
   // Update Gantt grid width
   if (!isGanttReady.value) return
-  
+
   if (showGanttGrid.value) {
     gantt.config.grid_width = originalGridWidth.value
   } else {
     gantt.config.grid_width = 0
   }
-  
+
   gantt.render()
 }
 
@@ -410,7 +410,12 @@ onBeforeUnmount(() => {
       >
         No hay grupos ni items para mostrar en el Gantt.
       </div>
-      <div v-else class="gantt-container" :class="{ 'gantt-container--grid-hidden': !showGanttGrid }" ref="ganttContainer"></div>
+      <div
+        v-else
+        class="gantt-container"
+        :class="{ 'gantt-container--grid-hidden': !showGanttGrid }"
+        ref="ganttContainer"
+      ></div>
       <div v-if="isSaving" class="gantt-saving">Guardando cambios...</div>
     </section>
   </article>
