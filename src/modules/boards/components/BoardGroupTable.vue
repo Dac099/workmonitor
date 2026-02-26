@@ -22,6 +22,7 @@ interface Props {
   isItemExpanded: (itemId: string) => boolean
   isSubitemsLoading: (itemId: string) => boolean
   getSubitems: (itemId: string) => SubItemRow[]
+  highlightedItemId?: string | null
 }
 
 defineProps<Props>()
@@ -60,6 +61,7 @@ const emit = defineEmits<{
           :should-use-cobranza-status-options="shouldUseCobranzaStatusOptions"
           :is-expanded="isItemExpanded(item.id)"
           :multiple-selected="multipleSelected"
+          :is-highlighted="item.id === highlightedItemId"
           @toggle-subitems="(itemId) => emit('toggleSubitems', itemId)"
           @selection-change="(itemId, selected) => emit('selectionChange', itemId, selected)"
           @edit="(payload) => emit('edit', payload)"

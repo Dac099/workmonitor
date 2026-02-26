@@ -23,6 +23,7 @@ interface Props {
   shouldUseCobranzaStatusOptions: boolean
   isExpanded: boolean
   multipleSelected: boolean
+  isHighlighted?: boolean
 }
 
 defineProps<Props>()
@@ -42,7 +43,7 @@ const getValueForColumn = (item: ItemWithValues, columnId: string): Value | unde
 </script>
 
 <template>
-  <tr class="item-row">
+  <tr class="item-row" :class="{ 'item-row--highlighted': isHighlighted }">
     <td class="item-row__cell">
       <section class="item-row__cell-content">
         <button
@@ -170,5 +171,24 @@ const getValueForColumn = (item: ItemWithValues, columnId: string): Value | unde
   align-items: center;
   justify-content: center;
   cursor: pointer;
+}
+
+.item-row--highlighted {
+  animation: highlight-pulse 20s ease-in-out forwards;
+}
+
+@keyframes highlight-pulse {
+  0% {
+    opacity: 0.6;
+    background-color: rgba(255, 193, 7, 0.15);
+  }
+  50% {
+    opacity: 1;
+    background-color: rgba(255, 193, 7, 0.25);
+  }
+  100% {
+    opacity: 1;
+    background-color: transparent;
+  }
 }
 </style>

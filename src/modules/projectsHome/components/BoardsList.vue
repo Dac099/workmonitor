@@ -26,7 +26,11 @@ const groupedBoards = computed(() => {
 })
 
 const goToBoard = (boardId: string) => {
-  router.push(`projects/boards/${boardId}`)
+  console.log('Navigating to board with ID:', boardId)
+  router.push({
+    path: `/projects/boards/${boardId}`,
+    replace: true,
+  })
 }
 </script>
 

@@ -18,6 +18,7 @@ import { API_BASE_URL } from '@/utils/contants'
 interface Props {
   group: GroupDetail
   groups?: Group[]
+  highlightedItemId?: string | null
 }
 
 const props = defineProps<Props>()
@@ -188,6 +189,7 @@ const { handleItemDeleted, handleItemsMove, handleItemsCopy } = useGroupItemActi
       :is-item-expanded="isItemExpanded"
       :is-subitems-loading="isSubitemsLoading"
       :get-subitems="getSubitems"
+      :highlighted-item-id="props.highlightedItemId"
       @toggle-subitems="toggleSubitems"
       @add-subitem="openSubitemSidebar"
       @delete-subitem="handleSubitemDeleted"

@@ -15,6 +15,7 @@ const {
   selectedGroupId,
   groupToRender,
   boardData,
+  highlightedItemId,
   toggleSidebar,
   handleErrorAction,
   handleGroupErrorAction,
@@ -69,7 +70,12 @@ const {
           :action="handleGroupErrorAction"
         />
       </section>
-      <BoardGroupDetail v-else-if="groupToRender" :group="groupToRender" :groups="groupsList" />
+      <BoardGroupDetail
+        v-else-if="groupToRender"
+        :group="groupToRender"
+        :groups="groupsList"
+        :highlighted-item-id="highlightedItemId"
+      />
       <div v-else class="content-empty">Selecciona un grupo</div>
     </section>
   </article>

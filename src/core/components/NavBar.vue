@@ -1,7 +1,14 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import GeneralSearch from './GeneralSearch.vue'
+import SearchResults from './SearchResults.vue'
+import type { SearcherResponse } from '../types/searcher'
+import { useRouter } from 'vue-router'
 
+const router = useRouter()
 const isSidebarOpen = ref(false)
+const isSearchResultsOpen = ref(false)
+const searchResults = ref<SearcherResponse | null>(null)
 
 const toggleSidebar = () => {
   isSidebarOpen.value = !isSidebarOpen.value
@@ -10,11 +17,52 @@ const toggleSidebar = () => {
 const closeSidebar = () => {
   isSidebarOpen.value = false
 }
+
+const handleSearch = (results: SearcherResponse) => {
+  searchResults.value = results
+  isSearchResultsOpen.value = true
+}
+
+const handleSearchClose = () => {
+  isSearchResultsOpen.value = false
+}
+
+const handleGroupSelect = (boardId: string, groupId: string) => {
+  router.push({
+    path: `/projects/boards/${boardId}`,
+    query: groupId ? { groupId } : {},
+    replace: true,
+  })
+
+  setTimeout(() => {
+    isSearchResultsOpen.value = false
+  }, 100)
+}
+
+const handleItemSelect = (boardId: string, groupId: string, itemId: string) => {
+  const query: Record<string, string> = {}
+  if (groupId) query.groupId = groupId
+  if (itemId) query.searchItemId = itemId
+
+  router.push({
+    path: `/projects/boards/${boardId}`,
+    query: Object.keys(query).length > 0 ? query : {},
+    replace: true,
+  })
+
+  setTimeout(() => {
+    isSearchResultsOpen.value = false
+  }, 100)
+}
 </script>
 
 <template>
   <article class="navbar">
-    <RouterLink to="/" class="navTitle">Workmonitor</RouterLink>
+    <div class="navHeader">
+      <RouterLink to="/" class="navTitle">Workmonitor</RouterLink>
+      <!-- General Search Component -->
+      <GeneralSearch @search="handleSearch" />
+    </div>
 
     <!-- Botón hamburguesa para móvil -->
     <button class="hamburger" @click="toggleSidebar" aria-label="Toggle menu">
@@ -49,6 +97,15 @@ const closeSidebar = () => {
         <RouterLink class="sidebar__item" to="/account" @click="closeSidebar"> Cuenta </RouterLink>
       </nav>
     </aside>
+
+    <!-- Search Results Sidebar -->
+    <SearchResults
+      :is-open="isSearchResultsOpen"
+      :results="searchResults"
+      @close="handleSearchClose"
+      @group-select="handleGroupSelect"
+      @item-select="handleItemSelect"
+    />
   </article>
   <hr />
 </template>
@@ -64,18 +121,29 @@ a {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 1rem;
   padding: 0.2rem 1rem;
+}
+
+.navHeader {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
 }
 
 .navTitle {
   font-size: 1.3rem;
   color: var(--dark-color);
   font-weight: bold;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .navList {
   display: flex;
   gap: 5px;
+  flex-grow: 1;
+  justify-content: flex-end;
 }
 
 .navListItem {
@@ -84,6 +152,7 @@ a {
   transition: all 0.5s ease;
   font-weight: 500;
   font-size: 0.9rem;
+  white-space: nowrap;
 }
 
 .navListItem:hover {
@@ -106,6 +175,7 @@ a {
   cursor: pointer;
   padding: 0.5rem;
   z-index: 1001;
+  flex-shrink: 0;
 }
 
 .hamburger span {
@@ -210,6 +280,11 @@ a {
 
   .overlay {
     display: block;
+  }
+
+  .navbar {
+    gap: 0.5rem;
+    padding: 0.2rem 0.5rem;
   }
 }
 </style>
