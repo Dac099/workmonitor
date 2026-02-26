@@ -37,6 +37,9 @@ const isGanttReady = ref(false)
 const ganttUpdateEventId = ref<string | number | null>(null)
 const isInitializing = ref(false)
 const { isSaving, save: saveTableValue } = useTableValueAPI()
+const timelineScale = ref<'day' | 'week' | 'month'>('day')
+const showGanttGrid = ref(true)
+const originalGridWidth = ref(360) // Default Gantt grid width
 
 const boardId = computed(() => route.params.boardId as string)
 
@@ -148,6 +151,30 @@ const handleTaskUpdate = async (task: GanttTask) => {
   })
 }
 
+const updateGanttScale = () => {
+  if (!isGanttReady.value) return
+
+  switch (timelineScale.value) {
+    case 'week':
+      gantt.config.scales = [
+        { unit: 'week', step: 1, format: '%W' },
+        { unit: 'day', step: 1, format: '%d' },
+      ]
+      gantt.config.scale_height = 50
+      break
+    case 'month':
+      gantt.config.scales = [{ unit: 'month', step: 1, format: '%F, %Y' }]
+      gantt.config.scale_height = 30
+      break
+    case 'day':
+    default:
+      gantt.config.scales = [{ unit: 'day', step: 1, format: '%d %M' }]
+      gantt.config.scale_height = 30
+      break
+  }
+  gantt.render()
+}
+
 const initGantt = () => {
   if (isGanttReady.value || !ganttContainer.value) return
 
@@ -159,8 +186,19 @@ const initGantt = () => {
   ]
   gantt.config.show_unscheduled = true
   gantt.config.open_tree_initially = true
+  gantt.config.xml_date = '%Y-%m-%d %H:%i'
+  gantt.config.row_height = 35
+  gantt.config.min_column_width = 50
+
+  // Configure initial scales
+  gantt.config.scales = [{ unit: 'day', step: 1, format: '%d %M' }]
+  gantt.config.scale_height = 30
+
   gantt.init(ganttContainer.value)
   console.log('Gantt initialized')
+
+  // Save the original grid width
+  originalGridWidth.value = gantt.config.grid_width
 
   ganttUpdateEventId.value = gantt.attachEvent(
     'onAfterTaskUpdate',
@@ -250,6 +288,21 @@ const goBack = () => {
   router.push({ path: `/projects/boards/${boardId.value}` })
 }
 
+const toggleGanttGrid = () => {
+  showGanttGrid.value = !showGanttGrid.value
+  
+  // Update Gantt grid width
+  if (!isGanttReady.value) return
+  
+  if (showGanttGrid.value) {
+    gantt.config.grid_width = originalGridWidth.value
+  } else {
+    gantt.config.grid_width = 0
+  }
+  
+  gantt.render()
+}
+
 watch(selectedTimelineColumnId, async (newValue, oldValue) => {
   if (isInitializing.value) return
   if (!newValue || newValue === oldValue) return
@@ -270,6 +323,10 @@ watch(selectedTimelineColumnId, async (newValue, oldValue) => {
       error instanceof Error ? error.message : 'Ocurrió un error al cargar el Gantt'
     isLoading.value = false
   }
+})
+
+watch(timelineScale, () => {
+  updateGanttScale()
 })
 
 onMounted(async () => {
@@ -293,24 +350,47 @@ onBeforeUnmount(() => {
         <button type="button" class="gantt-header__back" @click="goBack">
           <i class="nf nf-cod-arrow_left"></i>
         </button>
+        <button
+          type="button"
+          class="gantt-header__toggle-grid"
+          @click="toggleGanttGrid"
+          title="Mostrar/Ocultar grid"
+        >
+          <i :class="showGanttGrid ? 'nf nf-cod-chevron_left' : 'nf nf-cod-chevron_right'"></i>
+        </button>
         <div>
           <h2>{{ board?.name || 'Gantt' }}</h2>
           <p>Vista de cronograma</p>
         </div>
       </div>
       <div class="gantt-header__actions">
-        <label class="gantt-label" for="timeline-column">Columna timeline</label>
-        <select
-          id="timeline-column"
-          class="gantt-select"
-          v-model="selectedTimelineColumnId"
-          :disabled="!hasTimelineColumns || isLoading"
-        >
-          <option v-if="!hasTimelineColumns" value="">Sin columnas timeline</option>
-          <option v-for="column in timelineColumns" :key="column.id" :value="column.id">
-            {{ column.name }}
-          </option>
-        </select>
+        <div class="gantt-selector">
+          <label class="gantt-label" for="timeline-column">Columna timeline</label>
+          <select
+            id="timeline-column"
+            class="gantt-select"
+            v-model="selectedTimelineColumnId"
+            :disabled="!hasTimelineColumns || isLoading"
+          >
+            <option v-if="!hasTimelineColumns" value="">Sin columnas timeline</option>
+            <option v-for="column in timelineColumns" :key="column.id" :value="column.id">
+              {{ column.name }}
+            </option>
+          </select>
+        </div>
+        <div class="gantt-selector">
+          <label class="gantt-label" for="timeline-scale">Escala</label>
+          <select
+            id="timeline-scale"
+            class="gantt-select"
+            v-model="timelineScale"
+            :disabled="isLoading"
+          >
+            <option value="day">Día</option>
+            <option value="week">Semana</option>
+            <option value="month">Mes</option>
+          </select>
+        </div>
       </div>
     </article>
 
@@ -330,7 +410,7 @@ onBeforeUnmount(() => {
       >
         No hay grupos ni items para mostrar en el Gantt.
       </div>
-      <div v-else class="gantt-container" ref="ganttContainer"></div>
+      <div v-else class="gantt-container" :class="{ 'gantt-container--grid-hidden': !showGanttGrid }" ref="ganttContainer"></div>
       <div v-if="isSaving" class="gantt-saving">Guardando cambios...</div>
     </section>
   </article>
@@ -379,26 +459,57 @@ onBeforeUnmount(() => {
   height: 36px;
   border-radius: 8px;
   cursor: pointer;
+  display: none;
+}
+
+.gantt-header__toggle-grid {
+  border: none;
+  background-color: var(--dark-color);
+  color: var(--main-color);
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: none;
 }
 
 .gantt-header__actions {
   display: flex;
-  align-items: center;
-  gap: 8px;
+  align-items: flex-end;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.gantt-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .gantt-label {
   font-size: 0.85rem;
   color: var(--dark-color);
+  font-weight: 500;
 }
 
 .gantt-select {
-  min-width: 200px;
-  padding: 6px 10px;
+  min-width: 150px;
+  padding: 8px 12px;
   border-radius: 8px;
   border: 1px solid var(--ter-color);
   background-color: var(--main-color);
   color: var(--dark-color);
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.gantt-select:hover:not(:disabled) {
+  border-color: var(--contrast-color);
+}
+
+.gantt-select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .gantt-loading,
@@ -435,18 +546,100 @@ onBeforeUnmount(() => {
   font-size: 0.8rem;
 }
 
+@media (max-width: 768px) {
+  .gantt-header__back {
+    display: block;
+  }
+
+  .gantt-header__toggle-grid {
+    display: block;
+  }
+
+  .gantt-container--grid-hidden :deep(.gantt_grid) {
+    display: none !important;
+  }
+
+  .gantt-container--grid-hidden :deep(.gantt_task_content) {
+    margin-left: 0 !important;
+  }
+
+  .gantt-container--grid-hidden :deep(.gantt_data_area) {
+    padding-left: 0 !important;
+  }
+}
+
 @media (max-width: 900px) {
+  .gantt-page {
+    padding: 12px;
+    gap: 8px;
+  }
+
   .gantt-header {
     flex-direction: column;
     align-items: flex-start;
+    gap: 12px;
   }
 
   .gantt-header__actions {
     width: 100%;
+    gap: 12px;
+  }
+
+  .gantt-selector {
+    flex: 1;
+    min-width: 120px;
   }
 
   .gantt-select {
     width: 100%;
+  }
+
+  /* Adjust Gantt layout for tablet */
+  :deep(.gantt_grid) {
+    max-width: 280px;
+  }
+
+  :deep(.gantt_tree_content) {
+    margin-right: 0;
+  }
+}
+
+@media (max-width: 600px) {
+  .gantt-page {
+    padding: 8px;
+    gap: 6px;
+  }
+
+  .gantt-header__title h2 {
+    font-size: 1.1rem;
+  }
+
+  .gantt-header__title p {
+    font-size: 0.8rem;
+  }
+
+  .gantt-selector {
+    width: 100%;
+    min-width: auto;
+  }
+
+  .gantt-label {
+    font-size: 0.75rem;
+  }
+
+  .gantt-select {
+    min-width: auto;
+    font-size: 0.85rem;
+    padding: 6px 8px;
+  }
+
+  /* Optimize Gantt for mobile */
+  :deep(.gantt_grid) {
+    max-width: 240px;
+  }
+
+  :deep(.gantt_tree_content) {
+    width: 100% !important;
   }
 }
 </style>
