@@ -14,6 +14,21 @@ export type SubItem = {
   name: string
 }
 
+export type SubItemTableValue = {
+  id: string
+  itemId: string | null
+  columnId: string
+  value: string | null
+  columnType: string
+}
+
+export type SubItemDetail = {
+  id: string
+  itemParent: string
+  name: string
+  values: Array<SubItemTableValue>
+}
+
 export type ItemDetail = {
   id: string
   groupId: string

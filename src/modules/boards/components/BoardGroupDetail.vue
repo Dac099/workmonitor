@@ -13,7 +13,7 @@ import ColumnComponent from './field-cells/ColumnComponent.vue'
 import ItemNameCell from './field-cells/ItemNameCell.vue'
 import BoardColumnSidebar from './BoardColumnSidebar.vue'
 import BoardItemSidebar from './BoardItemSidebar.vue'
-import type { ItemDetail } from '../types/items'
+import type { ItemDetail, SubItemDetail } from '../types/items'
 import type { Group } from '../types/groups'
 import { API_BASE_URL } from '@/utils/contants'
 
@@ -31,6 +31,19 @@ interface DeleteItemsPayload {
   itemIds: string[]
 }
 
+interface ItemWithValues {
+  values: Array<Value>
+}
+
+interface SubItemRow {
+  id: string
+  itemParent: string
+  name: string
+  values: Array<Value>
+}
+
+type GetSubItemsResponse = Array<SubItemDetail>
+
 interface Props {
   group: GroupDetail
   groups?: Group[]
@@ -41,6 +54,9 @@ const columnsStore = useColumnsStore()
 const contabilityColumnsStore = useContabilityColumnsStore()
 const itemsSelected = ref<string[]>([])
 const localItems = ref<GroupDetail['items']>([])
+const expandedItemIds = ref<string[]>([])
+const subitemsByItemId = ref<Record<string, Array<SubItemRow>>>({})
+const loadingSubitemsByItemId = ref<Record<string, boolean>>({})
 const isContabilityMode = computed(() => !props.groups || props.groups.length === 0)
 const shouldUseCobranzaStatusOptions = computed(() => isContabilityMode.value)
 const columnsToRender = computed(() => {
@@ -58,12 +74,92 @@ watch(
       ...item,
       values: item.values.map((value) => ({ ...value })),
     }))
+    expandedItemIds.value = []
+    subitemsByItemId.value = {}
+    loadingSubitemsByItemId.value = {}
   },
   { immediate: true },
 )
 
-const getValueForColumn = (item: ItemDetail, columnId: string): Value | undefined => {
+const getValueForColumn = (item: ItemWithValues, columnId: string): Value | undefined => {
   return item.values.find((value) => value.columnId === columnId)
+}
+
+const mapSubItemValues = (subItem: SubItemDetail): Array<Value> => {
+  return subItem.values.map((value) => ({
+    id: value.id,
+    itemId: value.itemId ?? subItem.id,
+    columnId: value.columnId,
+    value: value.value ?? '',
+    columnType: value.columnType,
+  }))
+}
+
+const mapSubItemsResponse = (subItems: GetSubItemsResponse): Array<SubItemRow> => {
+  return subItems.map((subItem) => ({
+    id: subItem.id,
+    itemParent: subItem.itemParent,
+    name: subItem.name,
+    values: mapSubItemValues(subItem),
+  }))
+}
+
+const isItemExpanded = (itemId: string): boolean => {
+  return expandedItemIds.value.includes(itemId)
+}
+
+const isSubitemsLoading = (itemId: string): boolean => {
+  return loadingSubitemsByItemId.value[itemId] ?? false
+}
+
+const getSubitems = (itemId: string): Array<SubItemRow> => {
+  return subitemsByItemId.value[itemId] ?? []
+}
+
+const fetchSubitemsByItemId = async (itemId: string) => {
+  if (subitemsByItemId.value[itemId] || isSubitemsLoading(itemId)) {
+    return
+  }
+
+  loadingSubitemsByItemId.value = {
+    ...loadingSubitemsByItemId.value,
+    [itemId]: true,
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/subitems/parent/${itemId}`)
+
+    if (!response.ok) {
+      return
+    }
+
+    const data: unknown = await response.json()
+    const mappedSubItems = Array.isArray(data)
+      ? mapSubItemsResponse(data as GetSubItemsResponse)
+      : []
+
+    subitemsByItemId.value = {
+      ...subitemsByItemId.value,
+      [itemId]: mappedSubItems,
+    }
+  } catch (error) {
+    console.error('Error al cargar subitems:', error)
+  } finally {
+    loadingSubitemsByItemId.value = {
+      ...loadingSubitemsByItemId.value,
+      [itemId]: false,
+    }
+  }
+}
+
+const toggleSubitems = async (itemId: string) => {
+  if (isItemExpanded(itemId)) {
+    expandedItemIds.value = expandedItemIds.value.filter((id) => id !== itemId)
+    return
+  }
+
+  expandedItemIds.value = [...expandedItemIds.value, itemId]
+  await fetchSubitemsByItemId(itemId)
 }
 
 const showColumnSidebar = ref(false)
@@ -222,67 +318,158 @@ const handleItemsCopy = async (itemId: string, targetGroupId: string) => {
         </tr>
       </thead>
       <tbody>
-        <tr v-for="item in localItems" :key="item.id">
-          <td>
-            <ItemNameCell
-              :item="item"
-              :groups="props.groups ?? []"
-              @selectionChange="handleItemSelection"
-              @edit="handleItemEdited"
-              @delete="handleItemDeleted"
-              @move="handleItemsMove"
-              @copy="handleItemsCopy"
-              :multiple-selected="itemsSelected.length > 0"
-            />
-          </td>
-          <td v-for="column in columnsToRender" :key="column.id">
-            <TextValueCell
-              v-if="column.type === 'text'"
-              :value="getValueForColumn(item, column.id)"
-              :item-id="item.id"
-              :column-id="column.id"
-            >
-              <span class="empty-value"> - </span>
-            </TextValueCell>
+        <template v-for="item in localItems" :key="item.id">
+          <tr>
+            <td>
+              <section class="item-cell">
+                <button
+                  type="button"
+                  class="item-cell__expand-btn"
+                  :title="isItemExpanded(item.id) ? 'Ocultar subitems' : 'Mostrar subitems'"
+                  @click="toggleSubitems(item.id)"
+                >
+                  <span
+                    class="item-cell__expand-icon"
+                    :class="{ 'item-cell__expand-icon--expanded': isItemExpanded(item.id) }"
+                  >
+                    ▶
+                  </span>
+                </button>
+                <ItemNameCell
+                  :item="item"
+                  :groups="props.groups ?? []"
+                  @selectionChange="handleItemSelection"
+                  @edit="handleItemEdited"
+                  @delete="handleItemDeleted"
+                  @move="handleItemsMove"
+                  @copy="handleItemsCopy"
+                  :multiple-selected="itemsSelected.length > 0"
+                />
+              </section>
+            </td>
+            <td v-for="column in columnsToRender" :key="column.id">
+              <TextValueCell
+                v-if="column.type === 'text'"
+                :value="getValueForColumn(item, column.id)"
+                :item-id="item.id"
+                :column-id="column.id"
+              >
+                <span class="empty-value"> - </span>
+              </TextValueCell>
 
-            <NumberValueCell
-              v-else-if="column.type === 'number'"
-              :value="getValueForColumn(item, column.id)"
-              :item-id="item.id"
-              :column-id="column.id"
-            >
-              <span class="empty-value"> - </span>
-            </NumberValueCell>
+              <NumberValueCell
+                v-else-if="column.type === 'number'"
+                :value="getValueForColumn(item, column.id)"
+                :item-id="item.id"
+                :column-id="column.id"
+              >
+                <span class="empty-value"> - </span>
+              </NumberValueCell>
 
-            <DateValueCell
-              v-else-if="column.type === 'date'"
-              :value="getValueForColumn(item, column.id)"
-              :item-id="item.id"
-              :column-id="column.id"
-            >
-              <span class="empty-value"> - </span>
-            </DateValueCell>
+              <DateValueCell
+                v-else-if="column.type === 'date'"
+                :value="getValueForColumn(item, column.id)"
+                :item-id="item.id"
+                :column-id="column.id"
+              >
+                <span class="empty-value"> - </span>
+              </DateValueCell>
 
-            <StatusValueCell
-              v-else-if="column.type === 'status'"
-              :value="getValueForColumn(item, column.id)"
-              :item-id="item.id"
-              :column-id="column.id"
-              :use-cobranza-status-options="shouldUseCobranzaStatusOptions"
-            >
-              <span class="empty-value"> - </span>
-            </StatusValueCell>
+              <StatusValueCell
+                v-else-if="column.type === 'status'"
+                :value="getValueForColumn(item, column.id)"
+                :item-id="item.id"
+                :column-id="column.id"
+                :use-cobranza-status-options="shouldUseCobranzaStatusOptions"
+              >
+                <span class="empty-value"> - </span>
+              </StatusValueCell>
 
-            <TimelineValueCell
-              v-else-if="column.type === 'timeline'"
-              :value="getValueForColumn(item, column.id)"
-              :item-id="item.id"
-              :column-id="column.id"
-            >
-              <span class="empty-value"> - </span>
-            </TimelineValueCell>
-          </td>
-        </tr>
+              <TimelineValueCell
+                v-else-if="column.type === 'timeline'"
+                :value="getValueForColumn(item, column.id)"
+                :item-id="item.id"
+                :column-id="column.id"
+              >
+                <span class="empty-value"> - </span>
+              </TimelineValueCell>
+            </td>
+            <td class="control-component"></td>
+          </tr>
+
+          <tr v-if="isItemExpanded(item.id) && isSubitemsLoading(item.id)">
+            <td :colspan="columnsToRender.length + 2" class="subitem-row__state">
+              Cargando subitems...
+            </td>
+          </tr>
+
+          <tr v-if="isItemExpanded(item.id)" class="subitem-add-row">
+            <td :colspan="columnsToRender.length + 2" class="subitem-add-row__cell">
+              <button type="button" class="subitem-add-row__btn">+ Agregar subitem</button>
+            </td>
+          </tr>
+
+          <tr
+            v-for="subitem in getSubitems(item.id)"
+            :key="subitem.id"
+            v-show="isItemExpanded(item.id)"
+            class="subitem-row"
+          >
+            <td>
+              <section class="subitem-row__name-cell">
+                <span class="subitem-row__name">{{ subitem.name }}</span>
+              </section>
+            </td>
+            <td v-for="column in columnsToRender" :key="column.id">
+              <TextValueCell
+                v-if="column.type === 'text'"
+                :value="getValueForColumn(subitem, column.id)"
+                :item-id="subitem.id"
+                :column-id="column.id"
+              >
+                <span class="empty-value"> - </span>
+              </TextValueCell>
+
+              <NumberValueCell
+                v-else-if="column.type === 'number'"
+                :value="getValueForColumn(subitem, column.id)"
+                :item-id="subitem.id"
+                :column-id="column.id"
+              >
+                <span class="empty-value"> - </span>
+              </NumberValueCell>
+
+              <DateValueCell
+                v-else-if="column.type === 'date'"
+                :value="getValueForColumn(subitem, column.id)"
+                :item-id="subitem.id"
+                :column-id="column.id"
+              >
+                <span class="empty-value"> - </span>
+              </DateValueCell>
+
+              <StatusValueCell
+                v-else-if="column.type === 'status'"
+                :value="getValueForColumn(subitem, column.id)"
+                :item-id="subitem.id"
+                :column-id="column.id"
+                :use-cobranza-status-options="shouldUseCobranzaStatusOptions"
+              >
+                <span class="empty-value"> - </span>
+              </StatusValueCell>
+
+              <TimelineValueCell
+                v-else-if="column.type === 'timeline'"
+                :value="getValueForColumn(subitem, column.id)"
+                :item-id="subitem.id"
+                :column-id="column.id"
+              >
+                <span class="empty-value"> - </span>
+              </TimelineValueCell>
+            </td>
+            <td class="control-component"></td>
+          </tr>
+        </template>
       </tbody>
     </table>
 
@@ -333,6 +520,79 @@ const handleItemsCopy = async (itemId: string, targetGroupId: string) => {
   border: 1px solid var(--ter-color);
   cursor: pointer;
   height: 38px;
+}
+
+.item-cell {
+  display: flex;
+  align-items: stretch;
+}
+
+.item-cell__expand-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  border: none;
+  border-right: 1px solid var(--ter-color);
+  background-color: transparent;
+  color: var(--font-color);
+  cursor: pointer;
+}
+
+.item-cell__expand-icon {
+  display: inline-flex;
+  transform: rotate(0deg);
+  transition: transform 0.2s ease-in-out;
+}
+
+.item-cell__expand-icon--expanded {
+  transform: rotate(90deg);
+}
+
+.subitem-row td {
+  background-color: rgba(0, 0, 0, 0.02);
+}
+
+.subitem-row__name-cell {
+  display: flex;
+  align-items: center;
+  min-height: 38px;
+  padding-left: 34px;
+}
+
+.subitem-row__name {
+  color: var(--font-color);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.subitem-row__state {
+  border: 1px solid var(--ter-color);
+  padding: 6px 10px;
+  color: var(--font-color);
+}
+
+.subitem-add-row__cell {
+  border: 1px solid var(--ter-color);
+  padding: 0;
+  background-color: transparent;
+}
+
+.subitem-add-row__btn {
+  border: none;
+  background-color: transparent;
+  color: var(--font-color);
+  padding: 0 10px 0 34px;
+  min-height: 38px;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+
+.subitem-add-row__btn:hover {
+  background-color: rgba(0, 0, 0, 0.02);
 }
 
 .control-component {
