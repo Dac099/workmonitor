@@ -4,6 +4,7 @@ import ProjectsHome from '@/modules/projectsHome/components/ProjectsHome.vue'
 import ReportsHome from '@/modules/reportsHome/components/ReportsHome.vue'
 import TrackingHome from '@/modules/trackingHome/components/TrackingHome.vue'
 import BoardView from '@/modules/boards/components/BoardView.vue'
+import BoardGanttView from '@/modules/boards/components/BoardGanttView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -11,6 +12,7 @@ const router = createRouter({
     { path: '/', redirect: '/projects' },
     { path: '/projects', component: ProjectsHome },
     { path: '/projects/boards/:boardId', component: BoardView },
+    { path: '/projects/boards/:boardId/gantt', component: BoardGanttView },
     { path: '/account', component: AccountHome },
     { path: '/reports', component: ReportsHome },
     { path: '/tracking', component: TrackingHome },

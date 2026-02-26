@@ -4,6 +4,7 @@ export type Board = {
   workspaceName: string
   name: string
   description: string | null
+  hasTimeline?: boolean
 }
 
 export type SubmitBoardDto = {

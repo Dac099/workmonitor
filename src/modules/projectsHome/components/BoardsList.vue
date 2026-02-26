@@ -32,6 +32,12 @@ const goToBoard = (boardId: string) => {
     replace: true,
   })
 }
+
+const goToGantt = (boardId: string) => {
+  router.push({
+    path: `/projects/boards/${boardId}/gantt`,
+  })
+}
 </script>
 
 <template>
@@ -53,8 +59,19 @@ const goToBoard = (boardId: string) => {
           :key="board.id"
           @click="goToBoard(board.id)"
         >
-          <div class="board-icon" :class="{ 'is-compact': props.isCompact }">
-            <i class="nf nf-md-bulletin_board"></i>
+          <div class="board-icon-row" :class="{ 'is-compact': props.isCompact }">
+            <div class="board-icon" :class="{ 'is-compact': props.isCompact }">
+              <i class="nf nf-md-bulletin_board"></i>
+            </div>
+            <button
+              v-if="!props.isCompact && board.hasTimeline"
+              type="button"
+              class="board-gantt-btn"
+              title="Abrir Gantt"
+              @click.stop="goToGantt(board.id)"
+            >
+              <i class="nf nf-md-chart_timeline_variant"></i>
+            </button>
           </div>
           <div class="board-content" :class="{ 'is-compact': props.isCompact }">
             <h3>{{ board.name }}</h3>
@@ -165,8 +182,39 @@ const goToBoard = (boardId: string) => {
   background-color: var(--contrast-color);
   border-radius: 12px;
   flex-shrink: 0;
-  margin-bottom: 12px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+.board-icon-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.board-icon-row.is-compact {
+  gap: 8px;
+  margin-bottom: 0;
+}
+
+.board-gantt-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--ter-color);
+  border-radius: 10px;
+  background-color: var(--main-color);
+  color: var(--dark-color);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.board-gantt-btn:hover {
+  border-color: var(--contrast-color);
+  color: var(--contrast-color);
+  transform: translateY(-1px);
 }
 
 .board-icon.is-compact {

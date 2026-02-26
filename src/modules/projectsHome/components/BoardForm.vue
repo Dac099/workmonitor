@@ -69,6 +69,7 @@ const handleSubmit = async () => {
     emit('submit', {
       ...createdBoard,
       workspaceName: selectedWorkspace.value?.name || '',
+      hasTimeline: false,
     })
 
     boardName.value = ''
