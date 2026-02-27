@@ -7,14 +7,12 @@ import BoardColumnSidebar from './BoardColumnSidebar.vue'
 import BoardItemSidebar from './BoardItemSidebar.vue'
 import BoardGroupTable from './BoardGroupTable.vue'
 import BoardSubitemSidebar from './BoardSubitemSidebar.vue'
-import BoardExportSidebar from './BoardExportSidebar.vue'
 import type { ItemDetail } from '../types/items'
 import type { Group } from '../types/groups'
 import type { SubItemRow } from '../types/groupDetail'
 import { useGroupSubitems } from '../composables/useGroupSubitems'
 import { useGroupItemsSelection } from '../composables/useGroupItemsSelection'
 import { useGroupItemActions } from '../composables/useGroupItemActions'
-import { useExport } from '../composables/useExport'
 import { API_BASE_URL } from '@/utils/contants'
 
 interface Props {
@@ -39,7 +37,6 @@ const {
 } = useGroupSubitems()
 const { itemsSelected, handleItemSelection, ensureItemSelected, resetSelection } =
   useGroupItemsSelection()
-const { showExportSidebar, openExportSidebar, closeExportSidebar } = useExport()
 
 const isContabilityMode = computed(() => !props.groups || props.groups.length === 0)
 const shouldUseCobranzaStatusOptions = computed(() => isContabilityMode.value)
@@ -49,10 +46,6 @@ const columnsToRender = computed(() => {
   }
 
   return columnsStore.getColumnsSorted()
-})
-
-const hasTimeline = computed(() => {
-  return columnsToRender.value.some((col) => col.type === 'timeline')
 })
 
 watch(
@@ -164,15 +157,6 @@ const { handleItemDeleted, handleItemsMove, handleItemsCopy } = useGroupItemActi
     <section class="group-header">
       <p class="group-header__title" :title="group.name">{{ group.name }}</p>
       <section class="group-header__controls">
-        <button
-          type="button"
-          class="group-header__btn"
-          title="Exportar a Excel"
-          v-if="!isContabilityMode"
-          @click="openExportSidebar"
-        >
-          <i class="nf nf-md-microsoft_excel"></i>
-        </button>
         <button class="group-header__btn" title="Agregar item" @click="openItemSidebar">
           <i class="nf nf-md-playlist_plus"></i>
         </button>
@@ -229,16 +213,6 @@ const { handleItemDeleted, handleItemsMove, handleItemsCopy } = useGroupItemActi
       :item-parent="selectedParentItemId"
       @close="closeSubitemSidebar"
       @created="handleSubitemCreated"
-    />
-
-    <BoardExportSidebar
-      v-if="!isContabilityMode"
-      :visible="showExportSidebar"
-      :board-id="group.boardId"
-      :groups="groups ?? []"
-      :columns="columnsToRender"
-      :has-timeline="hasTimeline"
-      @close="closeExportSidebar"
     />
   </article>
 </template>

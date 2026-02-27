@@ -1,11 +1,16 @@
 <script lang="ts" setup>
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import OverlayMenu from '@/shared/components/OverlayMenu.vue'
 import type { Group } from '../types/groups'
+import type { Column } from '@/shared/types/columns'
 import BoardGroupsList from './BoardGroupsList.vue'
 import SideBar from '@/shared/components/SideBar.vue'
+import BoardExportSidebar from './BoardExportSidebar.vue'
 import { useBoardSidebar } from '../composables/useBoardSidebar'
+import { useExport } from '../composables/useExport'
 import BoardsList from '@/modules/projectsHome/components/BoardsList.vue'
+import { API_BASE_URL } from '@/utils/contants'
 
 interface Props {
   groups: Group[]
@@ -17,6 +22,8 @@ interface Props {
 
 const props = defineProps<Props>()
 const router = useRouter()
+const exportColumns = ref<Column[]>([])
+const { showExportSidebar, openExportSidebar, closeExportSidebar } = useExport()
 
 const emit = defineEmits<{
   (e: 'close'): void
@@ -48,7 +55,20 @@ const {
 const handleGanttView = () => {
   router.push({ path: `/projects/boards/${props.boardId}/gantt` })
 }
-const handleExport = () => {}
+
+const handleExport = async () => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/columns/board/${props.boardId}`)
+    if (!response.ok) {
+      throw new Error('No se pudieron cargar las columnas para exportar')
+    }
+
+    exportColumns.value = await response.json()
+    openExportSidebar()
+  } catch (error) {
+    console.error('Error al preparar exportación:', error)
+  }
+}
 </script>
 
 <template>
@@ -139,6 +159,15 @@ const handleExport = () => {}
         </button>
       </form>
     </SideBar>
+
+    <BoardExportSidebar
+      :visible="showExportSidebar"
+      :board-id="props.boardId"
+      :groups="props.groups"
+      :columns="exportColumns"
+      :has-timeline="props.hasTimeline"
+      @close="closeExportSidebar"
+    />
   </article>
 </template>
 
