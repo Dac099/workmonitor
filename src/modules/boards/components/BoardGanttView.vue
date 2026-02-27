@@ -7,7 +7,10 @@ import { API_BASE_URL } from '@/utils/contants'
 import type { Column } from '@/shared/types/columns'
 import type { Board } from '../types/board'
 import type { GanttBoardData } from '../types/gantt'
+import type { Group } from '../types/groups'
+import type { ItemDetail } from '../types/items'
 import { useTableValueAPI } from '../composables/useTableValueAPI'
+import GanttItemSidebar from './GanttItemSidebar.vue'
 
 type GanttTask = {
   id: string
@@ -31,6 +34,7 @@ const board = ref<Board | null>(null)
 const timelineColumns = ref<Column[]>([])
 const selectedTimelineColumnId = ref<string | null>(null)
 const ganttData = ref<GanttBoardData | null>(null)
+const groups = ref<Group[]>([])
 const isLoading = ref(true)
 const errorMessage = ref('')
 const isGanttReady = ref(false)
@@ -40,6 +44,7 @@ const { isSaving, save: saveTableValue } = useTableValueAPI()
 const timelineScale = ref<'day' | 'week' | 'month'>('day')
 const showGanttGrid = ref(true)
 const originalGridWidth = ref(360) // Default Gantt grid width
+const showItemSidebar = ref(false)
 
 const boardId = computed(() => route.params.boardId as string)
 
@@ -229,6 +234,14 @@ const loadTimelineColumns = async () => {
   selectedTimelineColumnId.value = timelineColumns.value[0]?.id ?? null
 }
 
+const loadGroups = async () => {
+  const response = await fetch(`${API_BASE_URL}/groups/board/${boardId.value}`)
+  if (!response.ok) {
+    throw new Error('No se pudieron cargar los grupos')
+  }
+  groups.value = await response.json()
+}
+
 const loadGanttData = async () => {
   if (!selectedTimelineColumnId.value) {
     ganttData.value = {
@@ -259,7 +272,7 @@ const loadPage = async () => {
   isInitializing.value = true
 
   try {
-    await Promise.all([loadBoard(), loadTimelineColumns()])
+    await Promise.all([loadBoard(), loadTimelineColumns(), loadGroups()])
     isInitializing.value = false
     await loadGanttData()
     console.log('Page loaded, ganttData:', ganttData.value)
@@ -301,6 +314,30 @@ const toggleGanttGrid = () => {
   }
 
   gantt.render()
+}
+
+const openItemSidebar = () => {
+  showItemSidebar.value = true
+}
+
+const handleItemCreated = (item: ItemDetail) => {
+  if (!ganttData.value) return
+
+  // Add the new item to ganttData
+  ganttData.value.items.push({
+    id: item.id,
+    groupId: item.groupId,
+    name: item.name,
+    position: ganttData.value.items.length,
+    timelineValueId: null,
+    timelineValue: null,
+  })
+
+  // Refresh gantt tasks and render
+  if (isGanttReady.value) {
+    gantt.clearAll()
+    gantt.parse({ data: ganttTasks.value })
+  }
 }
 
 watch(selectedTimelineColumnId, async (newValue, oldValue) => {
@@ -391,6 +428,16 @@ onBeforeUnmount(() => {
             <option value="month">Mes</option>
           </select>
         </div>
+        <button
+          type="button"
+          class="gantt-create-btn"
+          @click="openItemSidebar"
+          :disabled="groups.length === 0 || isLoading"
+          title="Crear nuevo item"
+        >
+          <i class="nf nf-md-playlist_plus"></i>
+          Crear Item
+        </button>
       </div>
     </article>
 
@@ -418,6 +465,13 @@ onBeforeUnmount(() => {
       ></div>
       <div v-if="isSaving" class="gantt-saving">Guardando cambios...</div>
     </section>
+
+    <GanttItemSidebar
+      :visible="showItemSidebar"
+      :groups="groups"
+      @close="showItemSidebar = false"
+      @created="handleItemCreated"
+    />
   </article>
 </template>
 
@@ -514,6 +568,35 @@ onBeforeUnmount(() => {
 .gantt-select:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.gantt-create-btn {
+  padding: 8px 16px;
+  background-color: var(--contrast-color);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: opacity 0.2s;
+  align-self: flex-end;
+}
+
+.gantt-create-btn:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.gantt-create-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.gantt-create-btn i {
+  font-size: 1rem;
 }
 
 .gantt-loading,
