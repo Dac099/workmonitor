@@ -183,14 +183,15 @@ const handleExport = async () => {
 }
 
 .sidebar-header {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
   padding: 5px;
   user-select: none;
 
   h4 {
     color: var(--contrast-color);
-    text-wrap: nowrap;
+    white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
