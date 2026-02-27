@@ -10,7 +10,9 @@ import type { GanttBoardData } from '../types/gantt'
 import type { Group } from '../types/groups'
 import type { ItemDetail } from '../types/items'
 import { useTableValueAPI } from '../composables/useTableValueAPI'
+import { useExport } from '../composables/useExport'
 import GanttItemSidebar from './GanttItemSidebar.vue'
+import BoardExportSidebar from './BoardExportSidebar.vue'
 
 type GanttTask = {
   id: string
@@ -31,6 +33,7 @@ const route = useRoute()
 const router = useRouter()
 const ganttContainer = ref<HTMLDivElement | null>(null)
 const board = ref<Board | null>(null)
+const allColumns = ref<Column[]>([])
 const timelineColumns = ref<Column[]>([])
 const selectedTimelineColumnId = ref<string | null>(null)
 const ganttData = ref<GanttBoardData | null>(null)
@@ -41,6 +44,7 @@ const isGanttReady = ref(false)
 const ganttUpdateEventId = ref<string | number | null>(null)
 const isInitializing = ref(false)
 const { isSaving, save: saveTableValue } = useTableValueAPI()
+const { showExportSidebar, openExportSidebar, closeExportSidebar } = useExport()
 const timelineScale = ref<'day' | 'week' | 'month'>('day')
 const showGanttGrid = ref(true)
 const originalGridWidth = ref(360) // Default Gantt grid width
@@ -230,6 +234,7 @@ const loadTimelineColumns = async () => {
     throw new Error('No se pudieron cargar las columnas')
   }
   const columns: Column[] = await response.json()
+  allColumns.value = columns
   timelineColumns.value = columns.filter((column) => column.type === 'timeline')
   selectedTimelineColumnId.value = timelineColumns.value[0]?.id ?? null
 }
@@ -438,6 +443,16 @@ onBeforeUnmount(() => {
           <i class="nf nf-md-playlist_plus"></i>
           Crear Item
         </button>
+        <button
+          type="button"
+          class="gantt-export-btn"
+          @click="openExportSidebar"
+          :disabled="isLoading || groups.length === 0"
+          title="Exportar a Excel"
+        >
+          <i class="nf nf-md-microsoft_excel"></i>
+          Exportar
+        </button>
       </div>
     </article>
 
@@ -471,6 +486,15 @@ onBeforeUnmount(() => {
       :groups="groups"
       @close="showItemSidebar = false"
       @created="handleItemCreated"
+    />
+
+    <BoardExportSidebar
+      :visible="showExportSidebar"
+      :board-id="boardId"
+      :groups="groups"
+      :columns="allColumns"
+      :has-timeline="hasTimelineColumns"
+      @close="closeExportSidebar"
     />
   </article>
 </template>
@@ -596,6 +620,35 @@ onBeforeUnmount(() => {
 }
 
 .gantt-create-btn i {
+  font-size: 1rem;
+}
+
+.gantt-export-btn {
+  padding: 8px 14px;
+  background-color: #217346;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: opacity 0.2s;
+  align-self: flex-end;
+}
+
+.gantt-export-btn:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.gantt-export-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.gantt-export-btn i {
   font-size: 1rem;
 }
 
