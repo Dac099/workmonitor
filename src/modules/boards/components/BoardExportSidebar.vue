@@ -123,9 +123,26 @@ const handleExport = async () => {
     let filename = `export_${new Date().toISOString().slice(0, 10)}.xlsx`
 
     if (contentDisposition) {
-      const filenameMatch = contentDisposition.match(/filename="?(.+)"?/)
-      if (filenameMatch && filenameMatch[1]) {
-        filename = filenameMatch[1]
+      // Intenta primero con filename*= (RFC 5987)
+      let filenameMatch = contentDisposition.match(/filename\*=(?:UTF-8'')?(.+?)(?:;|$)/)
+
+      // Si no encuentra, intenta con filename= (estándar)
+      if (!filenameMatch) {
+        filenameMatch = contentDisposition.match(/filename=("?)(.+?)\1(?:;|$)/)
+      }
+
+      if (filenameMatch) {
+        // Usar el último grupo capturado (que es el nombre real)
+        const extractedFilename = filenameMatch[filenameMatch.length - 1]
+        if (extractedFilename) {
+          filename = extractedFilename
+          // Decodificar si está URL-encoded
+          try {
+            filename = decodeURIComponent(filename)
+          } catch {
+            // Si no es válido como URL-encoded, usar el nombre como está
+          }
+        }
       }
     }
 
@@ -136,6 +153,9 @@ const handleExport = async () => {
     link.download = filename
     document.body.appendChild(link)
     link.click()
+
+    // Esperar a que el navegador inicie la descarga antes de finalizar el estado de carga
+    await new Promise((resolve) => setTimeout(resolve, 2000))
 
     // Limpiar
     window.URL.revokeObjectURL(url)
