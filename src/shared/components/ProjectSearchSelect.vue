@@ -122,8 +122,11 @@ const clearResultsOnFocus = () => {
         @click="selectProject(project)"
       >
         <div class="project-search-select__result-name">{{ project.nomProyecto }}</div>
-        <div class="project-search-select__result-client" v-if="project.nomCliente">
-          {{ project.nomCliente }}
+        <div class="project-search-select__result-meta">
+          <div class="project-search-select__result-client" v-if="project.nomCliente">
+            {{ project.nomCliente }}
+          </div>
+          <div class="project-search-select__result-id">ID: {{ project.idProyect }}</div>
         </div>
       </li>
     </ul>
@@ -202,6 +205,23 @@ const clearResultsOnFocus = () => {
 .project-search-select__result-client {
   font-size: 0.8rem;
   color: #666;
+}
+
+.project-search-select__result-meta {
+  display: flex;
+  gap: 1rem;
+  margin-top: 0.3rem;
+  font-size: 0.8rem;
+  color: #999;
+  align-items: center;
+}
+
+.project-search-select__result-id {
+  font-family: monospace;
+  background-color: #f5f5f5;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-weight: 500;
 }
 
 .project-search-select__card {
