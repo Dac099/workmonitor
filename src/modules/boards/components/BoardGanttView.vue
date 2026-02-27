@@ -464,7 +464,6 @@ onBeforeUnmount(() => {
   height: 36px;
   border-radius: 8px;
   cursor: pointer;
-  display: none;
 }
 
 .gantt-header__toggle-grid {
@@ -552,10 +551,6 @@ onBeforeUnmount(() => {
 }
 
 @media (max-width: 768px) {
-  .gantt-header__back {
-    display: block;
-  }
-
   .gantt-header__toggle-grid {
     display: block;
   }

@@ -66,7 +66,7 @@ const goToGantt = (boardId: string) => {
             <button
               v-if="!props.isCompact && board.hasTimeline"
               type="button"
-              class="board-gantt-btn"
+              class="board-icon"
               title="Abrir Gantt"
               @click.stop="goToGantt(board.id)"
             >
@@ -183,6 +183,18 @@ const goToGantt = (boardId: string) => {
   border-radius: 12px;
   flex-shrink: 0;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  outline: none;
+  border: none;
+}
+
+button.board-icon {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+button.board-icon:hover {
+  background-color: var(--dark-color);
+  color: var(--main-color);
 }
 
 .board-icon-row {

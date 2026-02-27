@@ -49,6 +49,8 @@ const {
         :groups="groupsList"
         :selected-group-id="selectedGroupId"
         :board-name="boardData!.name"
+        :board-id="boardData!.id"
+        :has-timeline="boardData!.hasTimeline ?? false"
         @close="toggleSidebar"
         @select="handleSelectGroup"
         @groups-change="handleGroupsChange"

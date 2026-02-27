@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+import { useRouter } from 'vue-router'
 import OverlayMenu from '@/shared/components/OverlayMenu.vue'
 import type { Group } from '../types/groups'
 import BoardGroupsList from './BoardGroupsList.vue'
@@ -10,9 +11,12 @@ interface Props {
   groups: Group[]
   selectedGroupId: string | null
   boardName: string
+  boardId: string
+  hasTimeline: boolean
 }
 
 const props = defineProps<Props>()
+const router = useRouter()
 
 const emit = defineEmits<{
   (e: 'close'): void
@@ -40,7 +44,10 @@ const {
   getGroups: () => props.groups,
   onGroupsChange: (groups) => emit('groups-change', groups),
 })
-const handleSearch = () => {}
+
+const handleGanttView = () => {
+  router.push({ path: `/projects/boards/${props.boardId}/gantt` })
+}
 const handleExport = () => {}
 </script>
 
@@ -74,7 +81,9 @@ const handleExport = () => {}
         <template #content>
           <section class="options-container">
             <button type="button" @click="openCreateGroup">Crear grupo</button>
-            <button type="button" @click="handleSearch">Busqueda</button>
+            <button v-if="props.hasTimeline" type="button" @click="handleGanttView">
+              Vista Gantt
+            </button>
             <button type="button" @click="handleExport">Exportar tablero</button>
           </section>
         </template>
@@ -194,7 +203,6 @@ const handleExport = () => {}
 
 .options-container button:hover {
   background-color: var(--ter-color);
-  text-align: right;
 }
 
 .sidebar-content {

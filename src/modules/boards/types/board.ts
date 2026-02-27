@@ -3,4 +3,5 @@ export type Board = {
   name: string
   workspaceId: string
   description: string | null
+  hasTimeline?: boolean
 }
